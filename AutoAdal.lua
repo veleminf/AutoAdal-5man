@@ -157,7 +157,7 @@ local function OnMouseOver(self, event, ...)
   end
 
   if (npcName == "Naaru Guardian" and IsHeroCD()) then
-    GameTooltip:AddLine("AutoAdal: Right-click to reset Bloodlust/Heroism CD")
+    GameTooltip:AddLine("AutoAdal: Click to reset Bloodlust/Heroism CD")
     GameTooltip:Show()
     return
   end
