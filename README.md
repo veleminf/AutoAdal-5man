@@ -12,8 +12,9 @@ Addon that automates interactions with buff NPCs. Provides the following functio
 4. Move the folder to the `/Interface/AddOns` directory.
 
 ## Images
-![Double-click to buff](images/double_click_to_buff.png)
-![Click to reset hero CD](images/click_to_reset_hero_cd.png)
+![doubleclick](https://github.com/user-attachments/assets/258807d7-11db-45c2-9efc-9362642537ce)
+![resetcd](https://github.com/user-attachments/assets/776a92b7-7cac-42aa-b224-114f44012c95)
+
 
 ## How Double Click Works
 The double-click functionality is implemented by tracking the last two mouseover events on the NPC. Clicking on NPC fires the UPDATE_MOUSEOVER_UNIT event, which is used to track the last two mouseover events. If the last two mouseover events are the same NPC and withing configured distance, it counts as a double-click.
