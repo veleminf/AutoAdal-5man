@@ -451,7 +451,7 @@ local function OnGossipShowEnhanced(self, event, ...)
             print("AutoAdal: Auto-selecting available quest from gossip: " .. text)
             return
           end
-        elseif button.type == 'Active' and isAutoQuest(text) and not hasQuestBuff(text) then
+        elseif button.type == 'Active' and IsShiftKeyDown() and isAutoQuest(text) and not hasQuestBuff(text) then
           button:Click()
           print("AutoAdal: Auto-selecting active quest from gossip: " .. text)
           return
