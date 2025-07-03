@@ -57,7 +57,7 @@ local function SlashCmdHandler(msg)
   local arguments = tokenize(msg);
   -- Check the message content
   if (arguments[1] == "clickdistance") then
-    print("aa debug. clickDistance setting is no longer used (shift+click system)");
+    print("aa debug. clickDistance setting is no longer used (shift+right-click system)");
   elseif (arguments[1] == "botmark") then
     if (arguments[2] == nil) then
       print("aa debug. Bot Marker = " .. AA_CONFIG["buffBotMarker"]);
@@ -120,11 +120,10 @@ aaframe:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 aaframe:RegisterEvent("ADDON_LOADED")
 aaframe:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 aaframe:RegisterEvent("GOSSIP_CLOSED")
-aaframe:RegisterEvent("PLAYER_TARGET_CHANGED")
 
 local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian" }
 
--- for shift+click activation
+-- for shift+right-click activation
 local autoAcceptingBuffs = false
 
 -- Checks if the Heroism or Bloodlust spell is on cooldown.
@@ -155,13 +154,13 @@ local function OnMouseOver(self, event, ...)
   end
 
   if (npcName == "Naaru Guardian" and IsHeroCD()) then
-    GameTooltip:AddLine("AutoAdal: Shift+Click to reset Bloodlust/Heroism CD")
+    GameTooltip:AddLine("AutoAdal: Shift+Right-Click to reset Bloodlust/Heroism CD")
     GameTooltip:Show()
     return
   end
 
   if (ArrIncludes(buffNPCs, npcName)) then
-    GameTooltip:AddLine("AutoAdal: Shift+Click to get group buffs")
+    GameTooltip:AddLine("AutoAdal: Shift+Right-Click to get group buffs")
     GameTooltip:Show()
   end
 end
@@ -215,6 +214,12 @@ local function OnGossipShow(self, event, ...)
   end
 
   local npcName = UnitName("target")
+
+  -- Check if shift is held down when gossip opens for buff NPCs
+  if (IsShiftKeyDown() and ArrIncludes(buffNPCs, npcName)) then
+    autoAcceptingBuffs = true
+    -- print("AutoAdal: Shift+Right-Click detected on " .. npcName .. ". Getting buffs...")
+  end
 
   -- Always reset Bloodlust/Heroism CD
   if (npcName == "Naaru Guardian" and IsHeroCD()) then
@@ -281,23 +286,6 @@ local function OnGossipShow(self, event, ...)
   end
 end
 
--- Handle shift+click when target changes
-local function OnPlayerTargetChanged(self, event, ...)
-  if (not AA_CONFIG["enabled"]) then
-    return
-  end
-
-  local npcName = UnitName("target")
-  if (npcName == nil) then return end
-
-  -- Check if shift is held down and we're targeting a buff NPC
-  if (IsShiftKeyDown() and ArrIncludes(buffNPCs, npcName)) then
-    autoAcceptingBuffs = true
-    -- Player needs to manually right-click or interact with the NPC to open gossip
-    print("AutoAdal: Shift+Click detected on " .. npcName .. ". Right-click to get buffs.")
-  end
-end
-
 local function OnEvent(self, event, ...)
   if (event == "GOSSIP_SHOW") then
     OnGossipShow(self, event, ...)
@@ -307,8 +295,6 @@ local function OnEvent(self, event, ...)
     InitConfig()
   elseif (event == "UPDATE_MOUSEOVER_UNIT") then
     OnMouseOver(self, event, ...)
-  elseif (event == "PLAYER_TARGET_CHANGED") then
-    OnPlayerTargetChanged(self, event, ...)
   elseif (event == "GOSSIP_CLOSED") then
     -- Reset auto accepting state
     autoAcceptingBuffs = false
