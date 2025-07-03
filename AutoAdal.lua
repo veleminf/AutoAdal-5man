@@ -1,13 +1,15 @@
 AA_CONFIG = {
   enabled = true,
   doubleClickDistance = 15,
-  buffBotMarker = 2
+  buffBotMarker = 2,
+  shoutType = "commanding"
 }
 
 local AA_DefaultConfig = {
   enabled = true,
   doubleClickDistance = 15,
-  buffBotMarker = 2
+  buffBotMarker = 2,
+  shoutType = "commanding"
 }
 
 local function InitConfig()
@@ -83,12 +85,26 @@ local function SlashCmdHandler(msg)
   elseif (arguments[1] == "disable") then
     AA_CONFIG["enabled"] = false;
     print("aa debug. Enabled = " .. tostring(AA_CONFIG["enabled"]));
+  elseif (arguments[1] == "shout") then
+    if (arguments[2] == nil) then
+      print("aa debug. Shout Type = " .. AA_CONFIG["shoutType"]);
+    else
+      local shoutType = arguments[2]:lower();
+      if (shoutType == "commanding" or shoutType == "battle") then
+        AA_CONFIG["shoutType"] = shoutType;
+        print("aa debug. Shout Type = " .. AA_CONFIG["shoutType"]);
+      else
+        print("Invalid shout type.");
+        print("/aa shout <commanding|battle> | Default: commanding");
+      end
+    end
   elseif (arguments[1] == "test") then
     print("aa debug. nothing to test");
   else
     print("Invalid command. /aa for help.");
     print("/aa clickDistance <value> | Default: 15");
     print("/aa botmark <0-8> | Default: 2");
+    print("/aa shout <commanding|battle> | Default: commanding");
     print("/aa enable");
     print("/aa disable");
   end
@@ -163,7 +179,7 @@ local function OnMouseOver(self, event, ...)
   end
 
   if (ArrIncludes(buffNPCs, npcName)) then
-    GameTooltip:AddLine("AutoAdal: Double-click to buff")
+    GameTooltip:AddLine("AutoAdal: Double-click to get group buffs")
     GameTooltip:Show()
   end
 end
@@ -229,7 +245,55 @@ local function OnGossipShow(self, event, ...)
 
   if (ArrIncludes(buffNPCs, npcName)) then
     if (autoAcceptingBuffs) then
-      FindAndSelectGossipOption("Empower my group with all the class buffs")
+      -- Check for buffs on player
+      local hasPrayerOfFortitude = false
+      local hasShout = false
+      local hasBloodPact = false
+
+      -- Determine which shout to check for
+      local shoutBuffName = ""
+      local shoutGossipOption = ""
+      local shoutDisplayName = ""
+
+      if (AA_CONFIG["shoutType"] == "battle") then
+        shoutBuffName = "Battle Shout"
+        shoutGossipOption = "Empower my group with Battle Shout"
+        shoutDisplayName = "Battle Shout"
+      else
+        shoutBuffName = "Commanding Shout"
+        shoutGossipOption = "Empower my group with Commanding Shout"
+        shoutDisplayName = "Commanding Shout"
+      end
+
+      local i = 1
+      while UnitBuff("player", i) do
+        local buffName = UnitBuff("player", i)
+        if (buffName == "Prayer of Fortitude") then
+          hasPrayerOfFortitude = true
+        elseif (buffName == shoutBuffName) then
+          hasShout = true
+        elseif (buffName == "Blood Pact") then
+          hasBloodPact = true
+        end
+        i = i + 1
+      end
+
+      -- Select option based on missing buffs (priority order)
+      if (not hasPrayerOfFortitude) then
+        if (FindAndSelectGossipOption("Empower my group with all the class buffs")) then
+          print("AutoAdal: Applied class buffs to group.")
+        end
+      elseif (not hasShout) then
+        if (FindAndSelectGossipOption(shoutGossipOption)) then
+          print("AutoAdal: Applied " .. shoutDisplayName .. " to group.")
+        end
+      elseif (not hasBloodPact) then
+        if (FindAndSelectGossipOption("Empower me with Blood Pact")) then
+          print("AutoAdal: Applied Blood Pact.")
+        end
+      else
+        print("AutoAdal: All buffs already present.")
+      end
       autoAcceptingBuffs = false
     end
   end
@@ -243,8 +307,6 @@ local function OnMouseOver2(self, event, ...)
   local npcName = UnitName("mouseover")
   if (npcName == nil) then return end
 
-  autoAcceptingBuffs = false
-
   if (ArrIncludes(buffNPCs, npcName)) then
     if (lastMouseOvers.first == npcName and lastMouseOvers.second == npcName) then
       -- the distance between clicks (mouseovers) needs to fit under a threshold
@@ -252,7 +314,6 @@ local function OnMouseOver2(self, event, ...)
       local distance = math.sqrt((lastMouseOvers.position[1] - cursorX)^2 + (lastMouseOvers.position[2] - cursorY)^2)
       if (distance < AA_CONFIG["doubleClickDistance"]) then
         autoAcceptingBuffs = true
-        FindAndSelectGossipOption("Empower my group with all the class buffs")
       end
     end
   end
@@ -270,8 +331,18 @@ local function OnEvent(self, event, ...)
     OnMouseOver(self, event, ...)
     OnMouseOver2(self, event, ...)
   elseif (event == "GOSSIP_CLOSED") then
-    PushLastMouseOver(nil)
-    PushLastMouseOver(UnitName("mouseover"))
+    -- Reset auto accepting state but keep mouseover tracking for consecutive double-clicks
+    autoAcceptingBuffs = false
+    -- If still hovering over a buff NPC, prepare for potential next double-click
+    local currentMouseover = UnitName("mouseover")
+    if (currentMouseover and ArrIncludes(buffNPCs, currentMouseover)) then
+      PushLastMouseOver(currentMouseover)
+    else
+      -- Clear tracking if not hovering over buff NPC
+      lastMouseOvers.first = nil
+      lastMouseOvers.second = nil
+      lastMouseOvers.position = {}
+    end
   end
 end
 
