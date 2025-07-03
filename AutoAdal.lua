@@ -1,13 +1,15 @@
 AA_CONFIG = {
   enabled = true,
   buffBotMarker = 2,
-  shoutType = "commanding"
+  shoutType = "commanding",
+  autoQuest = false
 }
 
 local AA_DefaultConfig = {
   enabled = true,
   buffBotMarker = 2,
-  shoutType = "commanding"
+  shoutType = "commanding",
+  autoQuest = false
 }
 
 local function InitConfig()
@@ -33,10 +35,7 @@ local function print(...)
   local b = 196;
   local color = string.format("|cff%02x%02x%02x", r, g, b);
   
-  -- Use multiple methods to ensure message displays
   DEFAULT_CHAT_FRAME:AddMessage(color .. message);
-  -- Also print to system message frame
-  UIErrorsFrame:AddMessage(message, r/255, g/255, b/255, 1.0, 3);
 end
 
 local function tokenize(str)
@@ -87,12 +86,29 @@ local function SlashCmdHandler(msg)
         print("/aa shout <commanding|battle> | Default: commanding");
       end
     end
+  elseif (arguments[1] == "autoquest") then
+    if (arguments[2] == nil) then
+      print("aa debug. Auto Quest = " .. tostring(AA_CONFIG["autoQuest"]));
+    else
+      local enableQuest = arguments[2]:lower();
+      if (enableQuest == "on" or enableQuest == "enable" or enableQuest == "true") then
+        AA_CONFIG["autoQuest"] = true;
+        print("aa debug. Auto Quest = " .. tostring(AA_CONFIG["autoQuest"]));
+      elseif (enableQuest == "off" or enableQuest == "disable" or enableQuest == "false") then
+        AA_CONFIG["autoQuest"] = false;
+        print("aa debug. Auto Quest = " .. tostring(AA_CONFIG["autoQuest"]));
+      else
+        print("Invalid autoquest value.");
+        print("/aa autoquest <on|off> | Default: on");
+      end
+    end
   elseif (arguments[1] == "test") then
     print("aa debug. nothing to test");
   else
     print("Invalid command. /aa for help.");
     print("/aa botmark <0-8> | Default: 2");
     print("/aa shout <commanding|battle> | Default: commanding");
+    print("/aa autoquest <on|off> | Default: on");
     print("/aa enable");
     print("/aa disable");
   end
@@ -116,8 +132,20 @@ aaframe:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 aaframe:RegisterEvent("ADDON_LOADED")
 aaframe:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 aaframe:RegisterEvent("GOSSIP_CLOSED")
+aaframe:RegisterEvent("QUEST_DETAIL")
+aaframe:RegisterEvent("QUEST_COMPLETE")
+aaframe:RegisterEvent("QUEST_PROGRESS")
+aaframe:RegisterEvent("QUEST_GREETING")
 
 local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian" }
+
+-- Auto-quest specific quest names (from the screenshot)
+local autoQuestNames = {
+  "World Buff Blessing",
+  "Slip'kik's Savvy",
+  "Fengus' Ferocity",
+  "Mol'dar's Moxie"
+}
 
 -- for shift+right-click activation
 local autoAcceptingBuffs = false
@@ -157,6 +185,11 @@ local function OnMouseOver(self, event, ...)
 
   if (ArrIncludes(buffNPCs, npcName)) then
     GameTooltip:AddLine("AutoAdal: Shift+Right-Click to get group buffs")
+    if (AA_CONFIG["autoQuest"]) then
+      GameTooltip:AddLine("AutoAdal: Auto-quest enabled")
+    else
+      GameTooltip:AddLine("AutoAdal: Auto-quest disabled")
+    end
     GameTooltip:Show()
   end
 end
@@ -282,9 +315,158 @@ local function OnGossipShow(self, event, ...)
   end
 end
 
+-- Quest handling functions (adapted from other addon)
+local function canAutoQuest()
+  -- Only auto-quest if enabled
+  return AA_CONFIG["autoQuest"]
+end
+
+local function stripQuestText(text)
+  if not text then return end
+  text = text:gsub('|c%x%x%x%x%x%x%x%x(.-)|r','%1')
+  text = text:gsub('%[.*%]%s*','')
+  text = text:gsub('(.+) %(.+%)', '%1')
+  if text.trim then
+    text = text:trim()
+  end
+  return text
+end
+
+local function isAutoQuest(questName)
+  if not questName then return false end
+  local cleanName = stripQuestText(questName)
+  return ArrIncludes(autoQuestNames, cleanName)
+end
+
+-- Get the buff name corresponding to a quest
+local function getBuffNameForQuest(questName)
+  if not questName then return nil end
+  local cleanName = stripQuestText(questName)
+  
+  if cleanName == "World Buff Blessing" then
+    return "Songflower Serenade"
+  else
+    -- For other quests, the buff name is the same as quest name
+    return cleanName
+  end
+end
+
+-- Check if player has the buff corresponding to a quest
+local function hasQuestBuff(questName)
+  local buffName = getBuffNameForQuest(questName)
+  if not buffName then return false end
+  local i = 1
+  while UnitBuff("player", i) do
+    local playerBuffName = UnitBuff("player", i)
+    if playerBuffName == buffName then
+      return true
+    end
+    i = i + 1
+  end
+  return false
+end
+
+local function OnQuestDetail(self, event, ...)
+  print("AutoAdal: OnQuestDetail")
+  if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
+    return
+  end
+  
+  local npcName = UnitName("target")
+  if (not ArrIncludes(buffNPCs, npcName)) then
+    return
+  end
+  
+  local questTitle = GetTitleText()
+  if (isAutoQuest(questTitle)) then
+    -- Only auto-accept if player doesn't already have the buff
+    if not hasQuestBuff(questTitle) then
+      AcceptQuest()
+      print("AutoAdal: Auto-accepted quest: " .. questTitle)
+    else
+      print("AutoAdal: Skipping quest " .. questTitle .. " - already have buff")
+    end
+  end
+end
+
+local function OnQuestComplete(self, event, ...)
+  if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
+    return
+  end
+  
+  local npcName = UnitName("target")
+  if (not ArrIncludes(buffNPCs, npcName)) then
+    return
+  end
+  
+  local questTitle = GetTitleText()
+  if (isAutoQuest(questTitle)) then
+    if GetNumQuestChoices() <= 1 then
+      QuestFrameCompleteQuestButton:Click()
+      print("AutoAdal: Auto-completed quest: " .. questTitle)
+    end
+  end
+end
+
+local function OnQuestProgress(self, event, ...)
+  if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
+    return
+  end
+  
+  local npcName = UnitName("target")
+  if (not ArrIncludes(buffNPCs, npcName)) then
+    return
+  end
+  
+  if IsQuestCompletable() then
+    local questTitle = GetTitleText()
+    if (isAutoQuest(questTitle)) then
+      CompleteQuest()
+      print("AutoAdal: Auto-progressed quest: " .. questTitle)
+    end
+  end
+end
+
+-- Enhanced gossip handling to include quest selection
+local function OnGossipShowEnhanced(self, event, ...)
+  if (not AA_CONFIG["enabled"]) then
+    return
+  end
+  
+  local npcName = UnitName("target")
+  
+  -- Handle quest selection in gossip for buff NPCs
+  if (canAutoQuest() and ArrIncludes(buffNPCs, npcName)) then
+    local button
+    local text
+    
+    for i = 1, 32 do
+      button = _G['GossipTitleButton' .. i]
+      if button and button:IsVisible() then
+        text = stripQuestText(button:GetText())
+        if button.type == 'Available' and isAutoQuest(text) then
+          print("AutoAdal: Available quest: " .. text)
+          if (not hasQuestBuff(text)) then
+            button:Click()
+            print("AutoAdal: Auto-selecting available quest from gossip: " .. text)
+            return
+          end
+        elseif button.type == 'Active' and isAutoQuest(text) and not hasQuestBuff(text) then
+          button:Click()
+          print("AutoAdal: Auto-selecting active quest from gossip: " .. text)
+          return
+        end
+      end
+    end
+  end
+  
+  -- Original gossip handling for buffs
+  OnGossipShow(self, event, ...)
+end
+
 local function OnEvent(self, event, ...)
   if (event == "GOSSIP_SHOW") then
-    OnGossipShow(self, event, ...)
+    OnGossipShowEnhanced(self, event, ...)
   elseif (event == "COMBAT_LOG_EVENT_UNFILTERED") then
     OnCombatLogEvent(self, event, ...)
   elseif (event == "ADDON_LOADED") then
@@ -294,6 +476,14 @@ local function OnEvent(self, event, ...)
   elseif (event == "GOSSIP_CLOSED") then
     -- Reset auto accepting state
     autoAcceptingBuffs = false
+  elseif (event == "QUEST_DETAIL") then
+    OnQuestDetail(self, event, ...)
+  elseif (event == "QUEST_COMPLETE") then
+    OnQuestComplete(self, event, ...)
+  elseif (event == "QUEST_PROGRESS") then
+    OnQuestProgress(self, event, ...)
+  elseif (event == "QUEST_GREETING") then
+    OnQuestGreeting(self, event, ...)
   end
 end
 
