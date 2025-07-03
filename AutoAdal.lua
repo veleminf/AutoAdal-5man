@@ -1,13 +1,11 @@
 AA_CONFIG = {
   enabled = true,
-  doubleClickDistance = 15, -- keeping for backwards compatibility but not used
   buffBotMarker = 2,
   shoutType = "commanding"
 }
 
 local AA_DefaultConfig = {
   enabled = true,
-  doubleClickDistance = 15, -- keeping for backwards compatibility but not used
   buffBotMarker = 2,
   shoutType = "commanding"
 }
@@ -34,7 +32,7 @@ local function print(...)
   local g = 211;
   local b = 196;
   local color = string.format("|cff%02x%02x%02x", r, g, b);
-
+  
   -- Use multiple methods to ensure message displays
   DEFAULT_CHAT_FRAME:AddMessage(color .. message);
   -- Also print to system message frame
@@ -56,9 +54,7 @@ local function SlashCmdHandler(msg)
   msg = msg:lower();
   local arguments = tokenize(msg);
   -- Check the message content
-  if (arguments[1] == "clickdistance") then
-    print("aa debug. clickDistance setting is no longer used (shift+right-click system)");
-  elseif (arguments[1] == "botmark") then
+  if (arguments[1] == "botmark") then
     if (arguments[2] == nil) then
       print("aa debug. Bot Marker = " .. AA_CONFIG["buffBotMarker"]);
     else
@@ -236,12 +232,12 @@ local function OnGossipShow(self, event, ...)
       local hasPrayerOfFortitude = false
       local hasShout = false
       local hasBloodPact = false
-
+      
       -- Determine which shout to check for
       local shoutBuffName = ""
       local shoutGossipOption = ""
       local shoutDisplayName = ""
-
+      
       if (AA_CONFIG["shoutType"] == "battle") then
         shoutBuffName = "Battle Shout"
         shoutGossipOption = "Empower my group with Battle Shout"
@@ -251,7 +247,7 @@ local function OnGossipShow(self, event, ...)
         shoutGossipOption = "Empower my group with Commanding Shout"
         shoutDisplayName = "Commanding Shout"
       end
-
+      
       local i = 1
       while UnitBuff("player", i) do
         local buffName = UnitBuff("player", i)
@@ -264,7 +260,7 @@ local function OnGossipShow(self, event, ...)
         end
         i = i + 1
       end
-
+      
       -- Select option based on missing buffs (priority order)
       if (not hasPrayerOfFortitude) then
         if (FindAndSelectGossipOption("Empower my group with all the class buffs")) then
@@ -301,4 +297,4 @@ local function OnEvent(self, event, ...)
   end
 end
 
-aaframe:SetScript("OnEvent", OnEvent)
+aaframe:SetScript("OnEvent", OnEvent) 
