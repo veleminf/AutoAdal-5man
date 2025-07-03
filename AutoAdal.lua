@@ -135,7 +135,6 @@ aaframe:RegisterEvent("GOSSIP_CLOSED")
 aaframe:RegisterEvent("QUEST_DETAIL")
 aaframe:RegisterEvent("QUEST_COMPLETE")
 aaframe:RegisterEvent("QUEST_PROGRESS")
-aaframe:RegisterEvent("QUEST_GREETING")
 
 local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian" }
 
@@ -237,9 +236,10 @@ local function FindAndSelectGossipOption(optionStr)
 end
 
 local nextBuffTime = 0
-local function OnGossipShow(self, event, ...)
+-- Handle buffs and return true if buffs were applied, false otherwise
+local function handleBuffs(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
-    return
+    return false
   end
 
   local npcName = UnitName("target")
@@ -255,7 +255,7 @@ local function OnGossipShow(self, event, ...)
     -- Click "I wish to reset Bloodlust or Heroism" if its on CD
     if (FindAndSelectGossipOption("I wish to reset Bloodlust or Heroism")) then
       print("AutoAdal: Bloodlust/Heroism CD reset.")
-      return
+      return true -- Buff action was taken
     end
   end
 
@@ -298,21 +298,27 @@ local function OnGossipShow(self, event, ...)
       if (not hasPrayerOfFortitude) then
         if (FindAndSelectGossipOption("Empower my group with all the class buffs")) then
           print("AutoAdal: Applied class buffs to group.")
+          autoAcceptingBuffs = false
+          return true -- Buff was applied
         end
       elseif (not hasShout) then
         if (FindAndSelectGossipOption(shoutGossipOption)) then
           print("AutoAdal: Applied " .. shoutDisplayName .. " to group.")
+          autoAcceptingBuffs = false
+          return true -- Buff was applied
         end
       elseif (not hasBloodPact) then
         if (FindAndSelectGossipOption("Empower me with Blood Pact")) then
           print("AutoAdal: Applied Blood Pact.")
+          autoAcceptingBuffs = false
+          return true -- Buff was applied
         end
-      else
-        print("AutoAdal: All buffs already present.")
       end
       autoAcceptingBuffs = false
     end
   end
+  
+  return false -- No buffs were applied
 end
 
 -- Quest handling functions (adapted from other addon)
@@ -427,7 +433,7 @@ local function OnQuestProgress(self, event, ...)
   end
 end
 
--- Enhanced gossip handling to include quest selection
+-- Enhanced gossip handling to prioritize buffs over quests
 local function OnGossipShowEnhanced(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
     return
@@ -435,8 +441,11 @@ local function OnGossipShowEnhanced(self, event, ...)
   
   local npcName = UnitName("target")
   
-  -- Handle quest selection in gossip for buff NPCs
-  if (canAutoQuest() and ArrIncludes(buffNPCs, npcName)) then
+  -- Handle buffs first and check if any were applied
+  local buffsApplied = handleBuffs(self, event, ...)
+  
+  -- Only handle quest selection if no buffs were applied
+  if (not buffsApplied and canAutoQuest() and ArrIncludes(buffNPCs, npcName)) then
     local button
     local text
     
@@ -444,14 +453,7 @@ local function OnGossipShowEnhanced(self, event, ...)
       button = _G['GossipTitleButton' .. i]
       if button and button:IsVisible() then
         text = stripQuestText(button:GetText())
-        if button.type == 'Available' and isAutoQuest(text) then
-          print("AutoAdal: Available quest: " .. text)
-          if (not hasQuestBuff(text)) then
-            button:Click()
-            print("AutoAdal: Auto-selecting available quest from gossip: " .. text)
-            return
-          end
-        elseif button.type == 'Active' and IsShiftKeyDown() and isAutoQuest(text) and not hasQuestBuff(text) then
+        if button.type == 'Active' and IsShiftKeyDown() and isAutoQuest(text) and not hasQuestBuff(text) then
           button:Click()
           print("AutoAdal: Auto-selecting active quest from gossip: " .. text)
           return
@@ -459,9 +461,8 @@ local function OnGossipShowEnhanced(self, event, ...)
       end
     end
   end
+  print("AutoAdal: All buffs already present.")
   
-  -- Original gossip handling for buffs
-  OnGossipShow(self, event, ...)
 end
 
 local function OnEvent(self, event, ...)
@@ -482,8 +483,6 @@ local function OnEvent(self, event, ...)
     OnQuestComplete(self, event, ...)
   elseif (event == "QUEST_PROGRESS") then
     OnQuestProgress(self, event, ...)
-  elseif (event == "QUEST_GREETING") then
-    OnQuestGreeting(self, event, ...)
   end
 end
 
