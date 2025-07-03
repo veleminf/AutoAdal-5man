@@ -1,13 +1,13 @@
 AA_CONFIG = {
   enabled = true,
-  doubleClickDistance = 15,
+  doubleClickDistance = 15, -- keeping for backwards compatibility but not used
   buffBotMarker = 2,
   shoutType = "commanding"
 }
 
 local AA_DefaultConfig = {
   enabled = true,
-  doubleClickDistance = 15,
+  doubleClickDistance = 15, -- keeping for backwards compatibility but not used
   buffBotMarker = 2,
   shoutType = "commanding"
 }
@@ -34,7 +34,11 @@ local function print(...)
   local g = 211;
   local b = 196;
   local color = string.format("|cff%02x%02x%02x", r, g, b);
+
+  -- Use multiple methods to ensure message displays
   DEFAULT_CHAT_FRAME:AddMessage(color .. message);
+  -- Also print to system message frame
+  UIErrorsFrame:AddMessage(message, r/255, g/255, b/255, 1.0, 3);
 end
 
 local function tokenize(str)
@@ -53,18 +57,7 @@ local function SlashCmdHandler(msg)
   local arguments = tokenize(msg);
   -- Check the message content
   if (arguments[1] == "clickdistance") then
-    if (arguments[2] == nil) then
-      print("aa debug. clickDistance = " .. AA_CONFIG["doubleClickDistance"]);
-    else
-      local clickDistance = tonumber(arguments[2]);
-      if (clickDistance == nil) then
-        print("Invalid distance value.");
-        print("/aa clickDistance <value> | Default: 15");
-      else
-        AA_CONFIG["doubleClickDistance"] = clickDistance;
-        print("aa debug. clickDistance = " .. AA_CONFIG["doubleClickDistance"]);
-      end
-    end
+    print("aa debug. clickDistance setting is no longer used (shift+click system)");
   elseif (arguments[1] == "botmark") then
     if (arguments[2] == nil) then
       print("aa debug. Bot Marker = " .. AA_CONFIG["buffBotMarker"]);
@@ -102,7 +95,6 @@ local function SlashCmdHandler(msg)
     print("aa debug. nothing to test");
   else
     print("Invalid command. /aa for help.");
-    print("/aa clickDistance <value> | Default: 15");
     print("/aa botmark <0-8> | Default: 2");
     print("/aa shout <commanding|battle> | Default: commanding");
     print("/aa enable");
@@ -128,22 +120,12 @@ aaframe:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 aaframe:RegisterEvent("ADDON_LOADED")
 aaframe:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 aaframe:RegisterEvent("GOSSIP_CLOSED")
+aaframe:RegisterEvent("PLAYER_TARGET_CHANGED")
 
 local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian" }
 
--- for double click
+-- for shift+click activation
 local autoAcceptingBuffs = false
-local lastMouseOvers = {
-  first = nil,
-  second = nil,
-  position = {}
-}
-
-local function PushLastMouseOver(npcName)
-  lastMouseOvers.second = lastMouseOvers.first
-  lastMouseOvers.first = npcName
-  lastMouseOvers.position = {GetCursorPosition()}
-end
 
 -- Checks if the Heroism or Bloodlust spell is on cooldown.
 -- @return boolean - Returns true if either spell is on cooldown, false otherwise.
@@ -173,13 +155,13 @@ local function OnMouseOver(self, event, ...)
   end
 
   if (npcName == "Naaru Guardian" and IsHeroCD()) then
-    GameTooltip:AddLine("AutoAdal: Click to reset Bloodlust/Heroism CD")
+    GameTooltip:AddLine("AutoAdal: Shift+Click to reset Bloodlust/Heroism CD")
     GameTooltip:Show()
     return
   end
 
   if (ArrIncludes(buffNPCs, npcName)) then
-    GameTooltip:AddLine("AutoAdal: Double-click to get group buffs")
+    GameTooltip:AddLine("AutoAdal: Shift+Click to get group buffs")
     GameTooltip:Show()
   end
 end
@@ -299,25 +281,21 @@ local function OnGossipShow(self, event, ...)
   end
 end
 
-local function OnMouseOver2(self, event, ...)
+-- Handle shift+click when target changes
+local function OnPlayerTargetChanged(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
     return
   end
 
-  local npcName = UnitName("mouseover")
+  local npcName = UnitName("target")
   if (npcName == nil) then return end
 
-  if (ArrIncludes(buffNPCs, npcName)) then
-    if (lastMouseOvers.first == npcName and lastMouseOvers.second == npcName) then
-      -- the distance between clicks (mouseovers) needs to fit under a threshold
-      local cursorX, cursorY = GetCursorPosition()
-      local distance = math.sqrt((lastMouseOvers.position[1] - cursorX)^2 + (lastMouseOvers.position[2] - cursorY)^2)
-      if (distance < AA_CONFIG["doubleClickDistance"]) then
-        autoAcceptingBuffs = true
-      end
-    end
+  -- Check if shift is held down and we're targeting a buff NPC
+  if (IsShiftKeyDown() and ArrIncludes(buffNPCs, npcName)) then
+    autoAcceptingBuffs = true
+    -- Player needs to manually right-click or interact with the NPC to open gossip
+    print("AutoAdal: Shift+Click detected on " .. npcName .. ". Right-click to get buffs.")
   end
-  PushLastMouseOver(npcName)
 end
 
 local function OnEvent(self, event, ...)
@@ -329,20 +307,11 @@ local function OnEvent(self, event, ...)
     InitConfig()
   elseif (event == "UPDATE_MOUSEOVER_UNIT") then
     OnMouseOver(self, event, ...)
-    OnMouseOver2(self, event, ...)
+  elseif (event == "PLAYER_TARGET_CHANGED") then
+    OnPlayerTargetChanged(self, event, ...)
   elseif (event == "GOSSIP_CLOSED") then
-    -- Reset auto accepting state but keep mouseover tracking for consecutive double-clicks
+    -- Reset auto accepting state
     autoAcceptingBuffs = false
-    -- If still hovering over a buff NPC, prepare for potential next double-click
-    local currentMouseover = UnitName("mouseover")
-    if (currentMouseover and ArrIncludes(buffNPCs, currentMouseover)) then
-      PushLastMouseOver(currentMouseover)
-    else
-      -- Clear tracking if not hovering over buff NPC
-      lastMouseOvers.first = nil
-      lastMouseOvers.second = nil
-      lastMouseOvers.position = {}
-    end
   end
 end
 
