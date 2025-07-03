@@ -372,6 +372,30 @@ local function hasQuestBuff(questName)
   return false
 end
 
+-- Handle quests and return true if any quest action was taken, false otherwise
+local function handleQuests(self, event, ...)
+  if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
+    return false
+  end
+  
+  local button
+  local text
+  
+  for i = 1, 32 do
+    button = _G['GossipTitleButton' .. i]
+    if button and button:IsVisible() then
+      text = stripQuestText(button:GetText())
+      if button.type == 'Active' and IsShiftKeyDown() and isAutoQuest(text) and not hasQuestBuff(text) then
+        button:Click()
+        print("AutoAdal: Auto-selecting active quest from gossip: " .. text)
+        return true -- Quest action was taken
+      end
+    end
+  end
+  
+  return false -- No quest action was taken
+end
+
 local function OnQuestDetail(self, event, ...)
   print("AutoAdal: OnQuestDetail")
   if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
@@ -440,28 +464,21 @@ local function OnGossipShowEnhanced(self, event, ...)
   end
   
   local npcName = UnitName("target")
+  if (not IsShiftKeyDown() or not ArrIncludes(buffNPCs, npcName)) then
+    return
+  end
   
   -- Handle buffs first and check if any were applied
   local buffsApplied = handleBuffs(self, event, ...)
   
   -- Only handle quest selection if no buffs were applied
-  if (not buffsApplied and canAutoQuest() and ArrIncludes(buffNPCs, npcName)) then
-    local button
-    local text
-    
-    for i = 1, 32 do
-      button = _G['GossipTitleButton' .. i]
-      if button and button:IsVisible() then
-        text = stripQuestText(button:GetText())
-        if button.type == 'Active' and IsShiftKeyDown() and isAutoQuest(text) and not hasQuestBuff(text) then
-          button:Click()
-          print("AutoAdal: Auto-selecting active quest from gossip: " .. text)
-          return
-        end
-      end
+  if (not buffsApplied) then
+    local questsHandled = handleQuests(self, event, ...)
+    -- If no quests were handled and we're in a buff NPC context, show the completion message
+    if (not questsHandled) then
+      print("AutoAdal: All buffs already present.")
     end
   end
-  print("AutoAdal: All buffs already present.")
   
 end
 
