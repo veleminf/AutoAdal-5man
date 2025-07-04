@@ -296,7 +296,7 @@ local function OnMouseOver(self, event, ...)
     end
   end
 
-  if (npcName == "Naaru Guardian" and IsHeroCD()) then
+  if ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD()) then
     GameTooltip:AddLine("AutoAdal: Shift+Right-Click to reset Bloodlust/Heroism CD")
     GameTooltip:Show()
     return
@@ -366,7 +366,7 @@ local function handleBuffs(self, event, ...)
   end
 
   -- Always reset Bloodlust/Heroism CD
-  if (npcName == "Naaru Guardian" and IsHeroCD()) then
+  if ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD()) then
     -- Click "I wish to reset Bloodlust or Heroism" if its on CD
     if (FindAndSelectGossipOption("I wish to reset Bloodlust or Heroism")) then
       print("AutoAdal: Bloodlust/Heroism CD reset.")
