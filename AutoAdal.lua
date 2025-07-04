@@ -140,7 +140,7 @@ local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian" }
 
 -- Auto-quest specific quest names (from the screenshot)
 local autoQuestNames = {
-  "World Buff Blessing",
+  "World Buff Blessing - 10 Token of Achievement Donation",
   "Slip'kik's Savvy",
   "Fengus' Ferocity",
   "Mol'dar's Moxie"
@@ -349,7 +349,7 @@ local function getBuffNameForQuest(questName)
   if not questName then return nil end
   local cleanName = stripQuestText(questName)
   
-  if cleanName == "World Buff Blessing" then
+  if cleanName == "World Buff Blessing - 10 Token of Achievement Donation" then
     return "Songflower Serenade"
   else
     -- For other quests, the buff name is the same as quest name
@@ -397,7 +397,6 @@ local function handleQuests(self, event, ...)
 end
 
 local function OnQuestDetail(self, event, ...)
-  print("AutoAdal: OnQuestDetail")
   if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
     return
   end
