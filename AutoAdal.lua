@@ -1,6 +1,5 @@
 AA_CONFIG = {
   enabled = true,
-  buffBotMarker = 2,
   shoutType = "commanding",
   autoQuests = {
     ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
@@ -12,7 +11,6 @@ AA_CONFIG = {
 
 local AA_DefaultConfig = {
   enabled = true,
-  buffBotMarker = 2,
   shoutType = "commanding",
   autoQuests = {
     ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
@@ -92,7 +90,6 @@ local function SlashCmdHandler(msg)
     print("AutoAdal Current Settings:")
     local addonStatus = AA_CONFIG["enabled"] and "ENABLED" or "DISABLED"
     print("  Addon: " .. addonStatus)
-    print("  Bot Marker: " .. AA_CONFIG["buffBotMarker"] .. (AA_CONFIG["buffBotMarker"] == 0 and " (disabled)" or ""))
     print("  Shout Type: " .. AA_CONFIG["shoutType"])
     
     local enabledQuests = {}
@@ -121,8 +118,6 @@ local function SlashCmdHandler(msg)
     print("  /aa disable             - Disable addon")
     print("")
     print("Configuration:")
-    print("  /aa marker <0-8>        - Set buff bot marker (0=disable)")
-    print("  /aa marker              - Show current marker")
     print("  /aa shout <type>        - Set shout type (commanding, battle)")
     print("  /aa shout               - Show current shout type")
     print("  /aa quest <names>       - Enable quests (wb, savvy, moxie, ferocity)")
@@ -135,19 +130,6 @@ local function SlashCmdHandler(msg)
   elseif (arguments[1] == "disable") then
     AA_CONFIG["enabled"] = false;
     print("AutoAdal: Addon DISABLED");
-  elseif (arguments[1] == "marker") then
-    if (arguments[2] == nil) then
-      print("AutoAdal: Bot Marker = " .. AA_CONFIG["buffBotMarker"] .. (AA_CONFIG["buffBotMarker"] == 0 and " (disabled)" or ""));
-    else
-      local marker = tonumber(arguments[2]);
-      if (marker == nil or marker < 0 or marker > 8) then
-        print("AutoAdal: Invalid marker value. Use 0-8 (0 = disable)");
-      else
-        AA_CONFIG["buffBotMarker"] = marker;
-        local status = marker == 0 and " (disabled)" or ""
-        print("AutoAdal: Bot Marker = " .. AA_CONFIG["buffBotMarker"] .. status);
-      end
-    end
   elseif (arguments[1] == "shout") then
     if (arguments[2] == nil) then
       print("AutoAdal: Shout Type = " .. AA_CONFIG["shoutType"]);
@@ -248,7 +230,6 @@ local function ArrIncludes(array, find)
 end
 
 aaframe:RegisterEvent("GOSSIP_SHOW")
-aaframe:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 aaframe:RegisterEvent("ADDON_LOADED")
 aaframe:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 aaframe:RegisterEvent("GOSSIP_CLOSED")
@@ -290,12 +271,6 @@ local function OnMouseOver(self, event, ...)
   local npcName = UnitName("mouseover")
   if (npcName == nil) then return end
 
-  if (AA_CONFIG["buffBotMarker"] ~= 0 and npcName == "Minutulus Naaru Guardian") then
-    if (GetRaidTargetIndex("mouseover") == nil) then
-      SetRaidTarget("mouseover", AA_CONFIG["buffBotMarker"])
-    end
-  end
-
   if ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD()) then
     GameTooltip:AddLine("AutoAdal: Shift+Right-Click to reset Bloodlust/Heroism CD")
     GameTooltip:Show()
@@ -305,23 +280,6 @@ local function OnMouseOver(self, event, ...)
   if (ArrIncludes(buffNPCs, npcName)) then
     GameTooltip:AddLine("AutoAdal: Shift+Right-Click to automatically get buffs")
     GameTooltip:Show()
-  end
-end
-
-local function OnCombatLogEvent(self, event, ...)
-  if (not AA_CONFIG["enabled"]) then
-    return
-  end
-
-  local subevent = select(2, ...)
-  local destname = select(7, ...)
-
-  if (subevent == "SPELL_SUMMON" and destname == "Minutulus Naaru Guardian") then
-    print("AutoAdal: Minutulus Naaru Guardian summoned")
-    -- this doesnt work because of the space in the name
-    if (AA_CONFIG["buffBotMarker"] ~= 0) then
-      SetRaidTarget("Minutulus Naaru Guardian", AA_CONFIG["buffBotMarker"])
-    end
   end
 end
 
@@ -616,8 +574,6 @@ end
 local function OnEvent(self, event, ...)
   if (event == "GOSSIP_SHOW") then
     OnGossipShowEnhanced(self, event, ...)
-  elseif (event == "COMBAT_LOG_EVENT_UNFILTERED") then
-    OnCombatLogEvent(self, event, ...)
   elseif (event == "ADDON_LOADED") then
     InitConfig()
   elseif (event == "UPDATE_MOUSEOVER_UNIT") then
