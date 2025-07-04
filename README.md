@@ -31,7 +31,7 @@ The addon works with these NPCs:
 
 ## 🔧 Installation
 
-1. Download the addon files
+1. [Download](https://github.com/veleminf/AutoAdal-5man/releases) the addon files
 2. Place the `AutoAdal` folder in your `Interface/AddOns/` folder
 3. Configure with `/aa help`
 4. Connect to [TBC5MAN server](https://tbc5man.com/) and enjoy automated buffing!
