@@ -339,6 +339,11 @@ local function handleBuffs(self, event, ...)
       local needsShout = true
       local needsBloodPact = true
       
+      -- Track individual class buffs
+      local hasPrayerOfFortitude = false
+      local hasGreaterBlessingOfKings = false
+      local hasGiftOfTheWild = false
+      
       -- Determine which shout to check for
       local shoutBuffName = ""
       local shoutGossipOption = ""
@@ -357,14 +362,20 @@ local function handleBuffs(self, event, ...)
       local i = 1
       while UnitBuff("player", i) do
         local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
-        
-        if (buffName == "Prayer of Fortitude" or buffName == "Greater Blessing of Kings" or buffName == "Gift of the Wild") then
-          -- Class buff: valid if no expiration time or more than 50 minutes remaining
+        if buffName == "Prayer of Fortitude" then
           if expirationTime > 3000 then
-            needsClassBuffs = false
+            hasPrayerOfFortitude = true
+          end
+        elseif buffName == "Greater Blessing of Kings" then
+          if expirationTime > 3000 then
+            hasGreaterBlessingOfKings = true
+          end
+        elseif buffName == "Gift of the Wild" then
+          if expirationTime > 3000 then
+            hasGiftOfTheWild = true
           end
         elseif buffName == shoutBuffName then
-          -- Shout buff: valid if no expiration time or more than 9 minutes remaining
+          -- Shout buff: valid if more than 9 minutes remaining
           if expirationTime > 540 then
             needsShout = false
           end
@@ -372,6 +383,11 @@ local function handleBuffs(self, event, ...)
           needsBloodPact = false
         end
         i = i + 1
+      end
+      
+      -- Only skip class buffs if we have ALL of them with good time
+      if hasPrayerOfFortitude and hasGreaterBlessingOfKings and hasGiftOfTheWild then
+        needsClassBuffs = false
       end
       
       -- Select option based on missing buffs (priority order)
