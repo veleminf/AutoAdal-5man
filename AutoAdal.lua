@@ -363,20 +363,20 @@ local function handleBuffs(self, event, ...)
       while UnitBuff("player", i) do
         local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
         if buffName == "Prayer of Fortitude" then
-          if expirationTime > 3000 then
+          if expirationTime == nil or expirationTime > 3000 then
             hasPrayerOfFortitude = true
           end
         elseif buffName == "Greater Blessing of Kings" then
-          if expirationTime > 3000 then
+          if expirationTime == nil or expirationTime > 3000 then
             hasGreaterBlessingOfKings = true
           end
         elseif buffName == "Gift of the Wild" then
-          if expirationTime > 3000 then
+          if expirationTime == nil or expirationTime > 3000 then
             hasGiftOfTheWild = true
           end
         elseif buffName == shoutBuffName then
           -- Shout buff: valid if more than 9 minutes remaining
-          if expirationTime > 540 then
+          if expirationTime == nil or expirationTime > 540 then
             needsShout = false
           end
         elseif buffName == "Blood Pact" then
@@ -479,7 +479,7 @@ local function hasQuestBuff(questName)
     local playerBuffName, _, _, _, _, expirationTime = UnitBuff("player", i)
     if playerBuffName == buffName then
       -- Quest buffs: reapply if less than 15 minutes (900 seconds) remaining
-      if expirationTime > 900 then
+      if expirationTime == nil or expirationTime > 900 then
         return true
       end
     end
