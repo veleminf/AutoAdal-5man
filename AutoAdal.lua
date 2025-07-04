@@ -278,22 +278,7 @@ local function OnMouseOver(self, event, ...)
   end
 
   if (ArrIncludes(buffNPCs, npcName)) then
-    GameTooltip:AddLine("AutoAdal: Shift+Right-Click to get group buffs")
-    
-    -- Show quest status
-    local enabledQuests = {}
-    for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
-      if enabled then
-        local displayName = questDisplayNames[questName] or questName
-        tinsert(enabledQuests, displayName)
-      end
-    end
-    
-    if #enabledQuests > 0 then
-      GameTooltip:AddLine("AutoAdal: Auto-quests: " .. #enabledQuests .. " enabled")
-    else
-      GameTooltip:AddLine("AutoAdal: Auto-quests: disabled")
-    end
+    GameTooltip:AddLine("AutoAdal: Shift+Right-Click to automatically get buffs")
     GameTooltip:Show()
   end
 end
