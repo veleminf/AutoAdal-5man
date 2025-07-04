@@ -100,9 +100,9 @@ local function SlashCmdHandler(msg)
       end
     end
     if #enabledQuests > 0 then
-      print("  Auto Quests: " .. table.concat(enabledQuests, ", ") .. " (" .. #enabledQuests .. " enabled)")
+      print("  Auto Quest buffs: " .. table.concat(enabledQuests, ", ") .. " (" .. #enabledQuests .. " enabled)")
     else
-      print("  Auto Quests: disabled")
+      print("  Auto Quest buffs: disabled")
     end
     return
   end
@@ -120,10 +120,10 @@ local function SlashCmdHandler(msg)
     print("Configuration:")
     print("  /aa shout <type>        - Set shout type (commanding, battle)")
     print("  /aa shout               - Show current shout type")
-    print("  /aa quest <names>       - Enable quests (wb, savvy, moxie, ferocity)")
-    print("  /aa quest               - Show enabled quests")
-    print("  /aa quest none          - Disable all quests")
-    print("  /aa quest help          - Show quest options")
+    print("  /aa quest <names>       - Enable quest buffs (wb, savvy, moxie, ferocity)")
+    print("  /aa quest               - Show enabled quest buffs")
+    print("  /aa quest none          - Disable all quest buffs")
+    print("  /aa quest help          - Show quest buffs options")
   elseif (arguments[1] == "enable") then
     AA_CONFIG["enabled"] = true;
     print("AutoAdal: Addon ENABLED");
@@ -153,9 +153,9 @@ local function SlashCmdHandler(msg)
         end
       end
       if #enabledQuests > 0 then
-        print("AutoAdal: Enabled quests: " .. table.concat(enabledQuests, ", "))
+        print("AutoAdal: Enabled quest buffs: " .. table.concat(enabledQuests, ", "))
       else
-        print("AutoAdal: No quests enabled")
+        print("AutoAdal: No quest buffs enabled")
       end
     elseif (arguments[2]:lower() == "help") then
       -- Show help
@@ -169,7 +169,7 @@ local function SlashCmdHandler(msg)
       for questName, _ in pairs(AA_CONFIG["autoQuests"]) do
         AA_CONFIG["autoQuests"][questName] = false
       end
-      print("AutoAdal: All quests disabled")
+      print("AutoAdal: All quest buffs disabled")
     else
       -- Handle quest list (enable specific quests)
       -- First validate ALL quest names before making any changes
@@ -182,7 +182,7 @@ local function SlashCmdHandler(msg)
         if questName and AA_CONFIG["autoQuests"][questName] ~= nil then
           tinsert(validQuests, questName)
         else
-          print("AutoAdal: Unknown quest '" .. questArg .. "'. Use /aa quest help for available names.")
+          print("AutoAdal: Unknown quest buff'" .. questArg .. "'. Use /aa quest help for available names.")
           hasInvalidQuest = true
         end
       end
@@ -203,12 +203,12 @@ local function SlashCmdHandler(msg)
         end
         
         if #enabledQuests > 0 then
-          print("AutoAdal: Enabled quests: " .. table.concat(enabledQuests, ", "))
+          print("AutoAdal: Enabled quest buffs: " .. table.concat(enabledQuests, ", "))
         else
-          print("AutoAdal: No valid quests specified")
+          print("AutoAdal: No valid quest buffs specified")
         end
       else
-        print("AutoAdal: No changes made due to invalid quest names.")
+        print("AutoAdal: No changes made due to invalid quest buff names.")
       end
     end
   else
