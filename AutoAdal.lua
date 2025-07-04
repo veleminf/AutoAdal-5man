@@ -86,41 +86,81 @@ local function SlashCmdHandler(msg)
   -- Convert the message to lowercase
   msg = msg:lower();
   local arguments = tokenize(msg);
+  
+  -- Show all current settings if no arguments
+  if (#arguments == 0) then
+    print("AutoAdal Current Settings:")
+    local addonStatus = AA_CONFIG["enabled"] and "ENABLED" or "DISABLED"
+    print("  Addon: " .. addonStatus)
+    print("  Bot Marker: " .. AA_CONFIG["buffBotMarker"] .. (AA_CONFIG["buffBotMarker"] == 0 and " (disabled)" or ""))
+    print("  Shout Type: " .. AA_CONFIG["shoutType"])
+    
+    local enabledQuests = {}
+    for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
+      if enabled then
+        local displayName = questDisplayNames[questName] or questName
+        tinsert(enabledQuests, displayName)
+      end
+    end
+    if #enabledQuests > 0 then
+      print("  Auto Quests: " .. table.concat(enabledQuests, ", ") .. " (" .. #enabledQuests .. " enabled)")
+    else
+      print("  Auto Quests: disabled")
+    end
+    return
+  end
+  
   -- Check the message content
-  if (arguments[1] == "botmark") then
+  if (arguments[1] == "help") then
+    print("AutoAdal Commands:")
+    print("  /aa                     - Show all current settings")
+    print("  /aa help                - Show this help")
+    print("")
+    print("Control:")
+    print("  /aa enable              - Enable addon")
+    print("  /aa disable             - Disable addon")
+    print("")
+    print("Configuration:")
+    print("  /aa marker <0-8>        - Set buff bot marker (0=disable)")
+    print("  /aa marker              - Show current marker")
+    print("  /aa shout <type>        - Set shout type (commanding, battle)")
+    print("  /aa shout               - Show current shout type")
+    print("  /aa quest <names>       - Enable quests (wb, savvy, moxie, ferocity)")
+    print("  /aa quest               - Show enabled quests")
+    print("  /aa quest none          - Disable all quests")
+    print("  /aa quest help          - Show quest options")
+  elseif (arguments[1] == "enable") then
+    AA_CONFIG["enabled"] = true;
+    print("AutoAdal: Addon ENABLED");
+  elseif (arguments[1] == "disable") then
+    AA_CONFIG["enabled"] = false;
+    print("AutoAdal: Addon DISABLED");
+  elseif (arguments[1] == "marker") then
     if (arguments[2] == nil) then
-      print("aa debug. Bot Marker = " .. AA_CONFIG["buffBotMarker"]);
+      print("AutoAdal: Bot Marker = " .. AA_CONFIG["buffBotMarker"] .. (AA_CONFIG["buffBotMarker"] == 0 and " (disabled)" or ""));
     else
       local marker = tonumber(arguments[2]);
       if (marker == nil or marker < 0 or marker > 8) then
-        print("Invalid marker value.");
-        print("/aa botmark <0-8> | Default: 2");
-        print("/aa botmark 0 | Disable");
+        print("AutoAdal: Invalid marker value. Use 0-8 (0 = disable)");
       else
         AA_CONFIG["buffBotMarker"] = marker;
-        print("aa debug. Bot Marker = " .. AA_CONFIG["buffBotMarker"]);
+        local status = marker == 0 and " (disabled)" or ""
+        print("AutoAdal: Bot Marker = " .. AA_CONFIG["buffBotMarker"] .. status);
       end
     end
-  elseif (arguments[1] == "enable") then
-    AA_CONFIG["enabled"] = true;
-    print("aa debug. Enabled = " .. tostring(AA_CONFIG["enabled"]));
-  elseif (arguments[1] == "disable") then
-    AA_CONFIG["enabled"] = false;
-    print("aa debug. Enabled = " .. tostring(AA_CONFIG["enabled"]));
   elseif (arguments[1] == "shout") then
     if (arguments[2] == nil) then
-      print("aa debug. Shout Type = " .. AA_CONFIG["shoutType"]);
+      print("AutoAdal: Shout Type = " .. AA_CONFIG["shoutType"]);
     else
       local shoutType = arguments[2]:lower();
       if (shoutType == "commanding" or shoutType == "battle") then
         AA_CONFIG["shoutType"] = shoutType;
-        print("aa debug. Shout Type = " .. AA_CONFIG["shoutType"]);
+        print("AutoAdal: Shout Type = " .. AA_CONFIG["shoutType"]);
       else
-        print("Invalid shout type.");
-        print("/aa shout <commanding|battle> | Default: commanding");
+        print("AutoAdal: Invalid shout type. Available: commanding, battle");
       end
     end
-  elseif (arguments[1] == "autoquest") then
+  elseif (arguments[1] == "quest") then
     if (arguments[2] == nil) then
       -- Show current quest settings
       local enabledQuests = {}
@@ -138,18 +178,10 @@ local function SlashCmdHandler(msg)
     elseif (arguments[2]:lower() == "help") then
       -- Show help
       print("AutoAdal Quest Commands:")
-      print("/aa autoquest - Show current settings")
-      print("/aa autoquest none - Disable all quests")
-      print("/aa autoquest wb savvy moxie ferocity - Enable specific quests")
+      print("  /aa quest               - Show enabled quests")
+      print("  /aa quest none          - Disable all quests")
+      print("  /aa quest <names>       - Enable specific quests")
       print("Available quest names: wb (worldbuff), savvy, ferocity, moxie")
-    elseif (arguments[2]:lower() == "status") then
-      -- Show detailed status
-      print("AutoAdal Quest Status:")
-      for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
-        local displayName = questDisplayNames[questName] or questName
-        local status = enabled and "ENABLED" or "disabled"
-        print("  " .. displayName .. ": " .. status)
-      end
     elseif (arguments[2]:lower() == "none") then
       -- Disable all quests
       for questName, _ in pairs(AA_CONFIG["autoQuests"]) do
@@ -168,7 +200,7 @@ local function SlashCmdHandler(msg)
         if questName and AA_CONFIG["autoQuests"][questName] ~= nil then
           tinsert(validQuests, questName)
         else
-          print("AutoAdal: Unknown quest '" .. questArg .. "'. Use /aa autoquest help for available names.")
+          print("AutoAdal: Unknown quest '" .. questArg .. "'. Use /aa quest help for available names.")
           hasInvalidQuest = true
         end
       end
@@ -197,15 +229,8 @@ local function SlashCmdHandler(msg)
         print("AutoAdal: No changes made due to invalid quest names.")
       end
     end
-  elseif (arguments[1] == "test") then
-    print("aa debug. nothing to test");
   else
-    print("Invalid command. /aa for help.");
-    print("/aa botmark <0-8> | Default: 2");
-    print("/aa shout <commanding|battle> | Default: commanding");
-    print("/aa autoquest [quest names] | /aa autoquest help");
-    print("/aa enable");
-    print("/aa disable");
+    print("AutoAdal: Unknown command. Use /aa help for available commands.")
   end
 end
 
