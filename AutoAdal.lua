@@ -335,7 +335,6 @@ local function handleBuffs(self, event, ...)
   if (ArrIncludes(buffNPCs, npcName)) then
     if (autoAcceptingBuffs) then
       -- Check for buffs on player
-      local hasPrayerOfFortitude = false
       local hasShout = false
       local hasBloodPact = false
       
@@ -357,8 +356,8 @@ local function handleBuffs(self, event, ...)
       local i = 1
       while UnitBuff("player", i) do
         local buffName = UnitBuff("player", i)
-        if (buffName == "Prayer of Fortitude") then
-          hasPrayerOfFortitude = true
+        if (buffName == "Prayer of Fortitude" or buffName == "Greater Blessing of Kings" or buffName == "Gift of the Wild") then
+          hasClassBuffs = true
         elseif (buffName == shoutBuffName) then
           hasShout = true
         elseif (buffName == "Blood Pact") then
@@ -368,7 +367,7 @@ local function handleBuffs(self, event, ...)
       end
       
       -- Select option based on missing buffs (priority order)
-      if (not hasPrayerOfFortitude) then
+      if (not hasClassBuffs) then
         if (FindAndSelectGossipOption("Empower my group with all the class buffs")) then
           print("AutoAdal: Applied class buffs to group.")
           autoAcceptingBuffs = false
