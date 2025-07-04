@@ -334,9 +334,10 @@ local function handleBuffs(self, event, ...)
 
   if (ArrIncludes(buffNPCs, npcName)) then
     if (autoAcceptingBuffs) then
-      -- Check for buffs on player
-      local hasShout = false
-      local hasBloodPact = false
+      -- Check for buffs on player with duration checks
+      local needsClassBuffs = true
+      local needsShout = true
+      local needsBloodPact = true
       
       -- Determine which shout to check for
       local shoutBuffName = ""
@@ -355,31 +356,38 @@ local function handleBuffs(self, event, ...)
       
       local i = 1
       while UnitBuff("player", i) do
-        local buffName = UnitBuff("player", i)
+        local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
+        
         if (buffName == "Prayer of Fortitude" or buffName == "Greater Blessing of Kings" or buffName == "Gift of the Wild") then
-          hasClassBuffs = true
-        elseif (buffName == shoutBuffName) then
-          hasShout = true
-        elseif (buffName == "Blood Pact") then
-          hasBloodPact = true
+          -- Class buff: valid if no expiration time or more than 50 minutes remaining
+          if expirationTime > 3000 then
+            needsClassBuffs = false
+          end
+        elseif buffName == shoutBuffName then
+          -- Shout buff: valid if no expiration time or more than 9 minutes remaining
+          if expirationTime > 540 then
+            needsShout = false
+          end
+        elseif buffName == "Blood Pact" then
+          needsBloodPact = false
         end
         i = i + 1
       end
       
       -- Select option based on missing buffs (priority order)
-      if (not hasClassBuffs) then
+      if needsClassBuffs then
         if (FindAndSelectGossipOption("Empower my group with all the class buffs")) then
           print("AutoAdal: Applied class buffs to group.")
           autoAcceptingBuffs = false
           return true -- Buff was applied
         end
-      elseif (not hasShout) then
+      elseif needsShout then
         if (FindAndSelectGossipOption(shoutGossipOption)) then
           print("AutoAdal: Applied " .. shoutDisplayName .. " to group.")
           autoAcceptingBuffs = false
           return true -- Buff was applied
         end
-      elseif (not hasBloodPact) then
+      elseif needsBloodPact then
         if (FindAndSelectGossipOption("Empower me with Blood Pact")) then
           print("AutoAdal: Applied Blood Pact.")
           autoAcceptingBuffs = false
@@ -446,15 +454,18 @@ local function getBuffNameForQuest(questName)
   end
 end
 
--- Check if player has the buff corresponding to a quest
+-- Check if player has the buff corresponding to a quest with sufficient duration
 local function hasQuestBuff(questName)
   local buffName = getBuffNameForQuest(questName)
   if not buffName then return false end
   local i = 1
   while UnitBuff("player", i) do
-    local playerBuffName = UnitBuff("player", i)
+    local playerBuffName, _, _, _, _, expirationTime = UnitBuff("player", i)
     if playerBuffName == buffName then
-      return true
+      -- Quest buffs: reapply if less than 15 minutes (900 seconds) remaining
+      if expirationTime > 900 then
+        return true
+      end
     end
     i = i + 1
   end
