@@ -2,20 +2,54 @@ AA_CONFIG = {
   enabled = true,
   buffBotMarker = 2,
   shoutType = "commanding",
-  autoQuest = false
+  autoQuests = {
+    ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
+    ["Slip'kik's Savvy"] = false,
+    ["Fengus' Ferocity"] = false,
+    ["Mol'dar's Moxie"] = false
+  }
 }
 
 local AA_DefaultConfig = {
   enabled = true,
   buffBotMarker = 2,
   shoutType = "commanding",
-  autoQuest = false
+  autoQuests = {
+    ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
+    ["Slip'kik's Savvy"] = false,
+    ["Fengus' Ferocity"] = false,
+    ["Mol'dar's Moxie"] = false
+  }
+}
+
+-- Quest name abbreviations mapping
+local questAbbreviations = {
+  ["wb"] = "World Buff Blessing - 10 Token of Achievement Donation",
+  ["worldbuff"] = "World Buff Blessing - 10 Token of Achievement Donation",
+  ["savvy"] = "Slip'kik's Savvy",
+  ["ferocity"] = "Fengus' Ferocity",
+  ["moxie"] = "Mol'dar's Moxie"
+}
+
+-- For display purposes, map full names back to short names
+local questDisplayNames = {
+  ["World Buff Blessing - 10 Token of Achievement Donation"] = "World Buff Blessing (Songflower Serenade)",
+  ["Slip'kik's Savvy"] = "Slip'kik's Savvy",
+  ["Fengus' Ferocity"] = "Fengus' Ferocity",
+  ["Mol'dar's Moxie"] = "Mol'dar's Moxie"
 }
 
 local function InitConfig()
   for key, value in pairs (AA_DefaultConfig) do
     if (AA_CONFIG[key] == nil) then
       AA_CONFIG[key] = value
+    elseif (key == "autoQuests" and type(value) == "table") then
+      -- Ensure all quest settings exist
+      for questName, questDefault in pairs(value) do
+        if (AA_CONFIG[key][questName] == nil) then
+          AA_CONFIG[key][questName] = questDefault
+        end
+      end
     end
   end
 end
@@ -88,18 +122,79 @@ local function SlashCmdHandler(msg)
     end
   elseif (arguments[1] == "autoquest") then
     if (arguments[2] == nil) then
-      print("aa debug. Auto Quest = " .. tostring(AA_CONFIG["autoQuest"]));
-    else
-      local enableQuest = arguments[2]:lower();
-      if (enableQuest == "on" or enableQuest == "enable" or enableQuest == "true") then
-        AA_CONFIG["autoQuest"] = true;
-        print("aa debug. Auto Quest = " .. tostring(AA_CONFIG["autoQuest"]));
-      elseif (enableQuest == "off" or enableQuest == "disable" or enableQuest == "false") then
-        AA_CONFIG["autoQuest"] = false;
-        print("aa debug. Auto Quest = " .. tostring(AA_CONFIG["autoQuest"]));
+      -- Show current quest settings
+      local enabledQuests = {}
+      for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
+        if enabled then
+          local displayName = questDisplayNames[questName] or questName
+          tinsert(enabledQuests, displayName)
+        end
+      end
+      if #enabledQuests > 0 then
+        print("AutoAdal: Enabled quests: " .. table.concat(enabledQuests, ", "))
       else
-        print("Invalid autoquest value.");
-        print("/aa autoquest <on|off> | Default: on");
+        print("AutoAdal: No quests enabled")
+      end
+    elseif (arguments[2]:lower() == "help") then
+      -- Show help
+      print("AutoAdal Quest Commands:")
+      print("/aa autoquest - Show current settings")
+      print("/aa autoquest none - Disable all quests")
+      print("/aa autoquest wb savvy moxie ferocity - Enable specific quests")
+      print("Available quest names: wb (worldbuff), savvy, ferocity, moxie")
+    elseif (arguments[2]:lower() == "status") then
+      -- Show detailed status
+      print("AutoAdal Quest Status:")
+      for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
+        local displayName = questDisplayNames[questName] or questName
+        local status = enabled and "ENABLED" or "disabled"
+        print("  " .. displayName .. ": " .. status)
+      end
+    elseif (arguments[2]:lower() == "none") then
+      -- Disable all quests
+      for questName, _ in pairs(AA_CONFIG["autoQuests"]) do
+        AA_CONFIG["autoQuests"][questName] = false
+      end
+      print("AutoAdal: All quests disabled")
+    else
+      -- Handle quest list (enable specific quests)
+      -- First validate ALL quest names before making any changes
+      local validQuests = {}
+      local hasInvalidQuest = false
+      
+      for i = 2, #arguments do
+        local questArg = arguments[i]:lower()
+        local questName = questAbbreviations[questArg]
+        if questName and AA_CONFIG["autoQuests"][questName] ~= nil then
+          tinsert(validQuests, questName)
+        else
+          print("AutoAdal: Unknown quest '" .. questArg .. "'. Use /aa autoquest help for available names.")
+          hasInvalidQuest = true
+        end
+      end
+      
+      -- Only proceed if ALL quest names are valid
+      if not hasInvalidQuest then
+        -- Disable all quests first
+        for questName, _ in pairs(AA_CONFIG["autoQuests"]) do
+          AA_CONFIG["autoQuests"][questName] = false
+        end
+        
+        -- Then enable the valid ones
+        local enabledQuests = {}
+        for _, questName in ipairs(validQuests) do
+          AA_CONFIG["autoQuests"][questName] = true
+          local displayName = questDisplayNames[questName] or questName
+          tinsert(enabledQuests, displayName)
+        end
+        
+        if #enabledQuests > 0 then
+          print("AutoAdal: Enabled quests: " .. table.concat(enabledQuests, ", "))
+        else
+          print("AutoAdal: No valid quests specified")
+        end
+      else
+        print("AutoAdal: No changes made due to invalid quest names.")
       end
     end
   elseif (arguments[1] == "test") then
@@ -108,7 +203,7 @@ local function SlashCmdHandler(msg)
     print("Invalid command. /aa for help.");
     print("/aa botmark <0-8> | Default: 2");
     print("/aa shout <commanding|battle> | Default: commanding");
-    print("/aa autoquest <on|off> | Default: on");
+    print("/aa autoquest [quest names] | /aa autoquest help");
     print("/aa enable");
     print("/aa disable");
   end
@@ -136,12 +231,12 @@ aaframe:RegisterEvent("QUEST_DETAIL")
 aaframe:RegisterEvent("QUEST_COMPLETE")
 aaframe:RegisterEvent("QUEST_PROGRESS")
 
-local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian" }
+local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian", "Alera" }
 
--- Auto-quest specific quest names (from the screenshot)
+-- Auto-quest specific quest names (full names as they appear in game)
 local autoQuestNames = {
   "World Buff Blessing - 10 Token of Achievement Donation",
-  "Slip'kik's Savvy",
+  "Slip'kik's Savvy", 
   "Fengus' Ferocity",
   "Mol'dar's Moxie"
 }
@@ -184,10 +279,20 @@ local function OnMouseOver(self, event, ...)
 
   if (ArrIncludes(buffNPCs, npcName)) then
     GameTooltip:AddLine("AutoAdal: Shift+Right-Click to get group buffs")
-    if (AA_CONFIG["autoQuest"]) then
-      GameTooltip:AddLine("AutoAdal: Auto-quest enabled")
+    
+    -- Show quest status
+    local enabledQuests = {}
+    for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
+      if enabled then
+        local displayName = questDisplayNames[questName] or questName
+        tinsert(enabledQuests, displayName)
+      end
+    end
+    
+    if #enabledQuests > 0 then
+      GameTooltip:AddLine("AutoAdal: Auto-quests: " .. #enabledQuests .. " enabled")
     else
-      GameTooltip:AddLine("AutoAdal: Auto-quest disabled")
+      GameTooltip:AddLine("AutoAdal: Auto-quests: disabled")
     end
     GameTooltip:Show()
   end
@@ -322,11 +427,6 @@ local function handleBuffs(self, event, ...)
 end
 
 -- Quest handling functions (adapted from other addon)
-local function canAutoQuest()
-  -- Only auto-quest if enabled
-  return AA_CONFIG["autoQuest"]
-end
-
 local function stripQuestText(text)
   if not text then return end
   text = text:gsub('|c%x%x%x%x%x%x%x%x(.-)|r','%1')
@@ -336,6 +436,27 @@ local function stripQuestText(text)
     text = text:trim()
   end
   return text
+end
+
+local function canAutoQuest(questName)
+  -- Only auto-quest if addon is enabled and specific quest is enabled
+  if not AA_CONFIG["enabled"] then
+    return false
+  end
+  
+  if questName then
+    -- Check if this specific quest is enabled
+    local cleanName = stripQuestText(questName)
+    return AA_CONFIG["autoQuests"][cleanName] == true
+  else
+    -- Check if any quest is enabled (for general checks)
+    for _, enabled in pairs(AA_CONFIG["autoQuests"]) do
+      if enabled then
+        return true
+      end
+    end
+    return false
+  end
 end
 
 local function isAutoQuest(questName)
@@ -349,7 +470,8 @@ local function getBuffNameForQuest(questName)
   if not questName then return nil end
   local cleanName = stripQuestText(questName)
   
-  if cleanName == "World Buff Blessing - 10 Token of Achievement Donation" then
+  -- Handle both the full quest name and the shortened one
+  if cleanName == "World Buff Blessing" or cleanName == "World Buff Blessing - 10 Token of Achievement Donation" then
     return "Songflower Serenade"
   else
     -- For other quests, the buff name is the same as quest name
@@ -385,7 +507,7 @@ local function handleQuests(self, event, ...)
     button = _G['GossipTitleButton' .. i]
     if button and button:IsVisible() then
       text = stripQuestText(button:GetText())
-      if button.type == 'Active' and IsShiftKeyDown() and isAutoQuest(text) and not hasQuestBuff(text) then
+      if button.type == 'Active' and IsShiftKeyDown() and isAutoQuest(text) and canAutoQuest(text) and not hasQuestBuff(text) then
         button:Click()
         print("AutoAdal: Auto-selecting active quest from gossip: " .. text)
         return true -- Quest action was taken
@@ -397,7 +519,7 @@ local function handleQuests(self, event, ...)
 end
 
 local function OnQuestDetail(self, event, ...)
-  if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
+  if (not AA_CONFIG["enabled"]) then
     return
   end
   
@@ -407,7 +529,7 @@ local function OnQuestDetail(self, event, ...)
   end
   
   local questTitle = GetTitleText()
-  if (isAutoQuest(questTitle)) then
+  if (isAutoQuest(questTitle) and canAutoQuest(questTitle)) then
     -- Only auto-accept if player doesn't already have the buff
     if not hasQuestBuff(questTitle) then
       AcceptQuest()
@@ -419,7 +541,7 @@ local function OnQuestDetail(self, event, ...)
 end
 
 local function OnQuestComplete(self, event, ...)
-  if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
+  if (not AA_CONFIG["enabled"]) then
     return
   end
   
@@ -429,7 +551,7 @@ local function OnQuestComplete(self, event, ...)
   end
   
   local questTitle = GetTitleText()
-  if (isAutoQuest(questTitle)) then
+  if (isAutoQuest(questTitle) and canAutoQuest(questTitle)) then
     if GetNumQuestChoices() <= 1 then
       QuestFrameCompleteQuestButton:Click()
       print("AutoAdal: Auto-completed quest: " .. questTitle)
@@ -438,7 +560,7 @@ local function OnQuestComplete(self, event, ...)
 end
 
 local function OnQuestProgress(self, event, ...)
-  if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
+  if (not AA_CONFIG["enabled"]) then
     return
   end
   
@@ -449,7 +571,7 @@ local function OnQuestProgress(self, event, ...)
   
   if IsQuestCompletable() then
     local questTitle = GetTitleText()
-    if (isAutoQuest(questTitle)) then
+    if (isAutoQuest(questTitle) and canAutoQuest(questTitle)) then
       CompleteQuest()
       print("AutoAdal: Auto-progressed quest: " .. questTitle)
     end
