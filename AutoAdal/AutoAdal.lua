@@ -675,27 +675,31 @@ local function OnGossipShowEnhanced(self, event, ...)
   
   -- Handle buffs first and check if any were applied
   local buffsApplied = handleBuffs(self, event, ...)
-  
-  -- Refresh tooltip if buffs were applied (with delay to allow server to apply buffs)
-  if buffsApplied then
-    -- Use TBC-compatible timer approach
-    local delayFrame = CreateFrame("Frame")
-    local startTime = GetTime()
-    delayFrame:SetScript("OnUpdate", function()
-      if GetTime() - startTime >= 0.5 then
-        refreshTooltip()
-        delayFrame:SetScript("OnUpdate", nil)
-      end
-    end)
-  end
+  local questsHandled = false
   
   -- Only handle quest selection if no buffs were applied
   if (not buffsApplied) then
-    local questsHandled = handleQuests(self, event, ...)
+    questsHandled = handleQuests(self, event, ...)
     -- If no quests were handled and we're in a buff NPC context, show the completion message
     if (not questsHandled) then
       print("AutoAdal: All buffs already present.")
     end
+  end
+  
+  -- Refresh tooltip if buffs or quests were applied (with delay to allow server to apply buffs)
+  if buffsApplied or questsHandled then
+    -- Use different delays: 0.3s for buffs, 0.6s for quests (quest completion takes longer)
+    local delay = buffsApplied and 0.3 or 1
+    
+    -- Use TBC-compatible timer approach
+    local delayFrame = CreateFrame("Frame")
+    local startTime = GetTime()
+    delayFrame:SetScript("OnUpdate", function()
+      if GetTime() - startTime >= delay then
+        refreshTooltip()
+        delayFrame:SetScript("OnUpdate", nil)
+      end
+    end)
   end
   
 end
