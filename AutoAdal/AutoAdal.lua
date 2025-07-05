@@ -307,28 +307,12 @@ local function hasQuestBuff(questName)
   return false
 end
 
--- Count remaining buffs that need to be applied
-local function countRemainingBuffs()
-  local buffCount = 0
-  
-  -- Check for class buffs
+-- Check if player has all class buffs with sufficient duration
+local function hasClassBuffs()
   local hasPrayerOfFortitude = false
   local hasGreaterBlessingOfKings = false
   local hasGiftOfTheWild = false
   
-  -- Check for shout buff
-  local needsShout = true
-  local shoutBuffName = ""
-  if (AA_CONFIG["shoutType"] == "battle") then
-    shoutBuffName = "Battle Shout"
-  else
-    shoutBuffName = "Commanding Shout"
-  end
-  
-  -- Check for Blood Pact
-  local needsBloodPact = true
-  
-  -- Check current buffs
   local i = 1
   while UnitBuff("player", i) do
     local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
@@ -344,26 +328,63 @@ local function countRemainingBuffs()
       if expirationTime == nil or expirationTime > 3000 then
         hasGiftOfTheWild = true
       end
-    elseif buffName == shoutBuffName then
-      if expirationTime == nil or expirationTime > 540 then
-        needsShout = false
-      end
-    elseif buffName == "Blood Pact" then
-      needsBloodPact = false
     end
     i = i + 1
   end
   
-  -- Count missing buffs
-  if not (hasPrayerOfFortitude and hasGreaterBlessingOfKings and hasGiftOfTheWild) then
+  return hasPrayerOfFortitude and hasGreaterBlessingOfKings and hasGiftOfTheWild
+end
+
+-- Check if player has the configured shout buff with sufficient duration
+local function hasShoutBuff()
+  local shoutBuffName = ""
+  if (AA_CONFIG["shoutType"] == "battle") then
+    shoutBuffName = "Battle Shout"
+  else
+    shoutBuffName = "Commanding Shout"
+  end
+  
+  local i = 1
+  while UnitBuff("player", i) do
+    local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
+    if buffName == shoutBuffName then
+      -- Shout buff: valid if more than 9 minutes remaining
+      if expirationTime == nil or expirationTime > 540 then
+        return true
+      end
+    end
+    i = i + 1
+  end
+  return false
+end
+
+-- Check if player has Blood Pact
+local function hasBloodPactBuff()
+  local i = 1
+  while UnitBuff("player", i) do
+    local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
+    if buffName == "Blood Pact" then
+      return true
+    end
+    i = i + 1
+  end
+  return false
+end
+
+-- Count remaining buffs that need to be applied
+local function countRemainingBuffs()
+  local buffCount = 0
+  
+  -- Count missing buffs using helper functions
+  if not hasClassBuffs() then
     buffCount = buffCount + 1 -- Class buffs count as one action
   end
   
-  if needsShout then
+  if not hasShoutBuff() then
     buffCount = buffCount + 1
   end
   
-  if needsBloodPact then
+  if not hasBloodPactBuff() then
     buffCount = buffCount + 1
   end
   
@@ -481,76 +502,32 @@ local function handleBuffs(self, event, ...)
 
   if (ArrIncludes(buffNPCs, npcName)) then
     if (autoAcceptingBuffs) then
-      -- Check for buffs on player with duration checks
-      local needsClassBuffs = true
-      local needsShout = true
-      local needsBloodPact = true
-      
-      -- Track individual class buffs
-      local hasPrayerOfFortitude = false
-      local hasGreaterBlessingOfKings = false
-      local hasGiftOfTheWild = false
-      
-      -- Determine which shout to check for
-      local shoutBuffName = ""
+      -- Determine shout configuration for messages
       local shoutGossipOption = ""
       local shoutDisplayName = ""
       
       if (AA_CONFIG["shoutType"] == "battle") then
-        shoutBuffName = "Battle Shout"
         shoutGossipOption = "Empower my group with Battle Shout"
         shoutDisplayName = "Battle Shout"
       else
-        shoutBuffName = "Commanding Shout"
         shoutGossipOption = "Empower my group with Commanding Shout"
         shoutDisplayName = "Commanding Shout"
       end
       
-      local i = 1
-      while UnitBuff("player", i) do
-        local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
-        if buffName == "Prayer of Fortitude" then
-          if expirationTime == nil or expirationTime > 3000 then
-            hasPrayerOfFortitude = true
-          end
-        elseif buffName == "Greater Blessing of Kings" then
-          if expirationTime == nil or expirationTime > 3000 then
-            hasGreaterBlessingOfKings = true
-          end
-        elseif buffName == "Gift of the Wild" then
-          if expirationTime == nil or expirationTime > 3000 then
-            hasGiftOfTheWild = true
-          end
-        elseif buffName == shoutBuffName then
-          -- Shout buff: valid if more than 9 minutes remaining
-          if expirationTime == nil or expirationTime > 540 then
-            needsShout = false
-          end
-        elseif buffName == "Blood Pact" then
-          needsBloodPact = false
-        end
-        i = i + 1
-      end
-      
-      -- Only skip class buffs if we have ALL of them with good time
-      if hasPrayerOfFortitude and hasGreaterBlessingOfKings and hasGiftOfTheWild then
-        needsClassBuffs = false
-      end
-      
       -- Select option based on missing buffs (priority order)
-      if needsClassBuffs then
+      if not hasClassBuffs() then
         if (FindAndSelectGossipOption("Empower my group with all the class buffs")) then
           print("AutoAdal: Applied class buffs to group.")
           autoAcceptingBuffs = false
           return true -- Buff was applied
         end
-      elseif needsShout then
+      elseif not hasShoutBuff() then
         if (FindAndSelectGossipOption(shoutGossipOption)) then
           print("AutoAdal: Applied " .. shoutDisplayName .. " to group.")
           autoAcceptingBuffs = false
           return true -- Buff was applied
         end
-      elseif needsBloodPact then
+      elseif not hasBloodPactBuff() then
         if (FindAndSelectGossipOption("Empower me with Blood Pact")) then
           print("AutoAdal: Applied Blood Pact.")
           autoAcceptingBuffs = false
