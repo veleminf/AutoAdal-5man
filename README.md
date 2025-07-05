@@ -4,12 +4,10 @@
 
 AutoAdal is a World of Warcraft addon that automates buff application and quest handling when interacting with specific NPCs like A'dal and buff bots on the TBC5MAN server.
 
-> **Note:** This addon is tailored for the custom buff systems and NPCs available on TBC5MAN server. It may not work correctly on other servers.
-
 ## 🎯 What Does This Addon Do?
 
 ### **Automatic Buff Application**
-- **Shift + Right-Click** on buff NPCs to automatically get all your buffs
+- **Shift + Right-Click** on buff NPCs to automatically get your buffs
 - Intelligently checks what buffs you need and applies them in the right order
 - Monitors buff duration and reapplies when they're about to expire
 
@@ -20,6 +18,13 @@ AutoAdal is a World of Warcraft addon that automates buff application and quest 
 
 ### **Bloodlust/Heroism Reset**
 - Automatically resets your Bloodlust or Heroism cooldown when available
+
+## ⚡ Why Use AutoAdal?
+
+- **Reduces 12+ manual clicks to get you fully buffed**
+- **Perfect for combat situations** - essential when you die and get revived during a fight
+- **Combat-ready buffing** - get fully buffed quickly during active combat or between pulls
+- **Never miss a buff** - ensures you get all available buffs, preventing manual oversight
 
 ## 🏛️ Compatible NPCs
 
@@ -109,22 +114,6 @@ When you Shift + Right-Click, buffs are applied in this order:
 2. **Shout Buffs Second** - If you're missing your configured shout buff
 3. **Blood Pact Third** - If you're missing Blood Pact
 4. **Quest Handling Last** - Processes any enabled quest buffs
-
-## 🎮 Gameplay Tips
-
-### **Perfect for Combat Situations**
-- Extremely useful when you die and get revived during a fight
-- Instead of manually clicking multiple buff NPCs, just Shift + Right-Click and get all your buffs instantly
-- When you have all necessary buffs, the addon will tell you there are no more buffs needed
-- Never forget to apply a buff again - the addon ensures you have them all
-
-### **Quest Management**
-- Enable only the quest buffs you actually want
-- The addon checks if you already have quest buffs before accepting quests
-
-### **Mouseover Tooltips**
-- Hover over buff NPCs to see helpful information
-- Shows available actions (buff application, cooldown reset)
 
 ## 💡 Example Usage
 
