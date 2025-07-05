@@ -371,26 +371,33 @@ local function hasBloodPactBuff()
   return false
 end
 
--- Count remaining buffs that need to be applied
-local function countRemainingBuffs()
+-- Count remaining buffs that need to be applied based on specific NPC capabilities
+local function countRemainingBuffs(npcName)
   local buffCount = 0
   
-  -- Count missing buffs using helper functions
-  if not hasClassBuffs() then
-    buffCount = buffCount + 1 -- Class buffs count as one action
+  -- All NPCs except Alera provide class buffs
+  if npcName ~= "Alera" then
+    if not hasClassBuffs() then
+      buffCount = buffCount + 1 -- Class buffs count as one action
+    end
   end
   
-  if not hasShoutBuff() then
-    buffCount = buffCount + 1
+  -- Alera and Minutulus Naaru Guardian provide quest buffs
+  if npcName == "Alera" or npcName == "Minutulus Naaru Guardian" then
+    for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
+      if enabled and not hasQuestBuff(questName) then
+        buffCount = buffCount + 1
+      end
+    end
   end
   
-  if not hasBloodPactBuff() then
-    buffCount = buffCount + 1
-  end
-  
-  -- Count enabled quest buffs that are missing
-  for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
-    if enabled and not hasQuestBuff(questName) then
+  -- Only Minutulus Naaru Guardian provides shout and blood pact buffs
+  if npcName == "Minutulus Naaru Guardian" then
+    if not hasShoutBuff() then
+      buffCount = buffCount + 1
+    end
+    
+    if not hasBloodPactBuff() then
       buffCount = buffCount + 1
     end
   end
@@ -405,7 +412,7 @@ local function refreshTooltip()
   if GameTooltip:IsVisible() then
     local npcName = UnitName("mouseover")
     if npcName and ArrIncludes(buffNPCs, npcName) then
-      local remainingBuffs = countRemainingBuffs()
+      local remainingBuffs = countRemainingBuffs(npcName)
       local heroResetNeeded = ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD())
       
       if heroResetNeeded then
@@ -435,7 +442,7 @@ local function OnMouseOver(self, event, ...)
   if (npcName == nil) then return end
 
   if (ArrIncludes(buffNPCs, npcName)) then
-    local remainingBuffs = countRemainingBuffs()
+    local remainingBuffs = countRemainingBuffs(npcName)
     local heroResetNeeded = ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD())
     
     if heroResetNeeded then

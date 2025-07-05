@@ -115,6 +115,18 @@ When you Shift + Right-Click, buffs are applied in this order:
 3. **Blood Pact Third** - If you're missing Blood Pact
 4. **Quest Handling Last** - Processes any enabled quest buffs
 
+## 💬 Smart Tooltips
+
+When you hover over buff NPCs, AutoAdal displays intelligent tooltips that show:
+- **Exact buff count** - See how many buffs that specific NPC can apply (e.g., "3 remaining")
+- **NPC-specific counts** - Each NPC shows only the buffs it can provide
+- **Real-time updates** - Tooltip refreshes automatically after each Shift + Right-Click
+- **Completion status** - Shows "All buffs already applied" when fully buffed
+
+**Example tooltips:**
+- `AutoAdal: Shift+Right-Click to automatically get buffs (2 remaining)`
+- `AutoAdal: All buffs already applied`
+
 ## 💡 Example Usage
 
 **Basic Setup:**
