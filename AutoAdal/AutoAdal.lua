@@ -263,6 +263,148 @@ local function IsHeroCD()
   return false
 end
 
+-- Quest helper functions needed for buff counting
+local function stripQuestText(text)
+  if not text then return end
+  text = text:gsub('|c%x%x%x%x%x%x%x%x(.-)|r','%1')
+  text = text:gsub('%[.*%]%s*','')
+  text = text:gsub('(.+) %(.+%)', '%1')
+  if text.trim then
+    text = text:trim()
+  end
+  return text
+end
+
+-- Get the buff name corresponding to a quest
+local function getBuffNameForQuest(questName)
+  if not questName then return nil end
+  local cleanName = stripQuestText(questName)
+  
+  -- Handle both the full quest name and the shortened one
+  if cleanName == "World Buff Blessing" or cleanName == "World Buff Blessing - 10 Token of Achievement Donation" then
+    return "Songflower Serenade"
+  else
+    -- For other quests, the buff name is the same as quest name
+    return cleanName
+  end
+end
+
+-- Check if player has the buff corresponding to a quest with sufficient duration
+local function hasQuestBuff(questName)
+  local buffName = getBuffNameForQuest(questName)
+  if not buffName then return false end
+  local i = 1
+  while UnitBuff("player", i) do
+    local playerBuffName, _, _, _, _, expirationTime = UnitBuff("player", i)
+    if playerBuffName == buffName then
+      -- Quest buffs: reapply if less than 15 minutes (900 seconds) remaining
+      if expirationTime == nil or expirationTime > 900 then
+        return true
+      end
+    end
+    i = i + 1
+  end
+  return false
+end
+
+-- Count remaining buffs that need to be applied
+local function countRemainingBuffs()
+  local buffCount = 0
+  
+  -- Check for class buffs
+  local hasPrayerOfFortitude = false
+  local hasGreaterBlessingOfKings = false
+  local hasGiftOfTheWild = false
+  
+  -- Check for shout buff
+  local needsShout = true
+  local shoutBuffName = ""
+  if (AA_CONFIG["shoutType"] == "battle") then
+    shoutBuffName = "Battle Shout"
+  else
+    shoutBuffName = "Commanding Shout"
+  end
+  
+  -- Check for Blood Pact
+  local needsBloodPact = true
+  
+  -- Check current buffs
+  local i = 1
+  while UnitBuff("player", i) do
+    local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
+    if buffName == "Prayer of Fortitude" then
+      if expirationTime == nil or expirationTime > 3000 then
+        hasPrayerOfFortitude = true
+      end
+    elseif buffName == "Greater Blessing of Kings" then
+      if expirationTime == nil or expirationTime > 3000 then
+        hasGreaterBlessingOfKings = true
+      end
+    elseif buffName == "Gift of the Wild" then
+      if expirationTime == nil or expirationTime > 3000 then
+        hasGiftOfTheWild = true
+      end
+    elseif buffName == shoutBuffName then
+      if expirationTime == nil or expirationTime > 540 then
+        needsShout = false
+      end
+    elseif buffName == "Blood Pact" then
+      needsBloodPact = false
+    end
+    i = i + 1
+  end
+  
+  -- Count missing buffs
+  if not (hasPrayerOfFortitude and hasGreaterBlessingOfKings and hasGiftOfTheWild) then
+    buffCount = buffCount + 1 -- Class buffs count as one action
+  end
+  
+  if needsShout then
+    buffCount = buffCount + 1
+  end
+  
+  if needsBloodPact then
+    buffCount = buffCount + 1
+  end
+  
+  -- Count enabled quest buffs that are missing
+  for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
+    if enabled and not hasQuestBuff(questName) then
+      buffCount = buffCount + 1
+    end
+  end
+  
+  return buffCount
+end
+
+
+
+-- Refresh tooltip if it's showing for a buff NPC
+local function refreshTooltip()
+  if GameTooltip:IsVisible() then
+    local npcName = UnitName("mouseover")
+    if npcName and ArrIncludes(buffNPCs, npcName) then
+      local remainingBuffs = countRemainingBuffs()
+      local heroResetNeeded = ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD())
+      
+      if heroResetNeeded then
+        remainingBuffs = remainingBuffs + 1
+      end
+      
+      -- Clear existing tooltip lines and add the updated one
+      GameTooltip:ClearLines()
+      GameTooltip:SetUnit("mouseover")
+      
+      if remainingBuffs > 0 then
+        GameTooltip:AddLine("AutoAdal: Shift+Right-Click to automatically get buffs (" .. remainingBuffs .. " remaining)")
+      else
+        GameTooltip:AddLine("AutoAdal: All buffs already applied")
+      end
+      GameTooltip:Show()
+    end
+  end
+end
+
 local function OnMouseOver(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
     return
@@ -271,14 +413,19 @@ local function OnMouseOver(self, event, ...)
   local npcName = UnitName("mouseover")
   if (npcName == nil) then return end
 
-  if ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD()) then
-    GameTooltip:AddLine("AutoAdal: Shift+Right-Click to reset Bloodlust/Heroism CD")
-    GameTooltip:Show()
-    return
-  end
-
   if (ArrIncludes(buffNPCs, npcName)) then
-    GameTooltip:AddLine("AutoAdal: Shift+Right-Click to automatically get buffs")
+    local remainingBuffs = countRemainingBuffs()
+    local heroResetNeeded = ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD())
+    
+    if heroResetNeeded then
+      remainingBuffs = remainingBuffs + 1
+    end
+    
+    if remainingBuffs > 0 then
+      GameTooltip:AddLine("AutoAdal: Shift+Right-Click to automatically get buffs (" .. remainingBuffs .. " remaining)")
+    else
+      GameTooltip:AddLine("AutoAdal: All buffs already applied")
+    end
     GameTooltip:Show()
   end
 end
@@ -418,17 +565,6 @@ local function handleBuffs(self, event, ...)
 end
 
 -- Quest handling functions (adapted from other addon)
-local function stripQuestText(text)
-  if not text then return end
-  text = text:gsub('|c%x%x%x%x%x%x%x%x(.-)|r','%1')
-  text = text:gsub('%[.*%]%s*','')
-  text = text:gsub('(.+) %(.+%)', '%1')
-  if text.trim then
-    text = text:trim()
-  end
-  return text
-end
-
 local function canAutoQuest(questName)
   -- Only auto-quest if addon is enabled and specific quest is enabled
   if not AA_CONFIG["enabled"] then
@@ -456,37 +592,7 @@ local function isAutoQuest(questName)
   return ArrIncludes(autoQuestNames, cleanName)
 end
 
--- Get the buff name corresponding to a quest
-local function getBuffNameForQuest(questName)
-  if not questName then return nil end
-  local cleanName = stripQuestText(questName)
-  
-  -- Handle both the full quest name and the shortened one
-  if cleanName == "World Buff Blessing" or cleanName == "World Buff Blessing - 10 Token of Achievement Donation" then
-    return "Songflower Serenade"
-  else
-    -- For other quests, the buff name is the same as quest name
-    return cleanName
-  end
-end
 
--- Check if player has the buff corresponding to a quest with sufficient duration
-local function hasQuestBuff(questName)
-  local buffName = getBuffNameForQuest(questName)
-  if not buffName then return false end
-  local i = 1
-  while UnitBuff("player", i) do
-    local playerBuffName, _, _, _, _, expirationTime = UnitBuff("player", i)
-    if playerBuffName == buffName then
-      -- Quest buffs: reapply if less than 15 minutes (900 seconds) remaining
-      if expirationTime == nil or expirationTime > 900 then
-        return true
-      end
-    end
-    i = i + 1
-  end
-  return false
-end
 
 -- Handle quests and return true if any quest action was taken, false otherwise
 local function handleQuests(self, event, ...)
@@ -585,6 +691,19 @@ local function OnGossipShowEnhanced(self, event, ...)
   
   -- Handle buffs first and check if any were applied
   local buffsApplied = handleBuffs(self, event, ...)
+  
+  -- Refresh tooltip if buffs were applied (with delay to allow server to apply buffs)
+  if buffsApplied then
+    -- Use TBC-compatible timer approach
+    local delayFrame = CreateFrame("Frame")
+    local startTime = GetTime()
+    delayFrame:SetScript("OnUpdate", function()
+      if GetTime() - startTime >= 0.5 then
+        refreshTooltip()
+        delayFrame:SetScript("OnUpdate", nil)
+      end
+    end)
+  end
   
   -- Only handle quest selection if no buffs were applied
   if (not buffsApplied) then
