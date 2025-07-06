@@ -201,35 +201,57 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
   local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   label:SetPoint("TOPLEFT", frame.enableCheckbox, "BOTTOMLEFT", 0, -20)
   label:SetText("Shout Type:")
-
-  local btn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-  btn:SetSize(150, 25)
-  btn:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -5)
-
-  -- Update button text and handle clicks
-  local function UpdateShoutButton()
-    btn:SetText(AA_CONFIG["shoutType"]:gsub("^%l", string.upper))
-  end
-
-  if isInterfaceOptions then
-    btn:SetScript("OnShow", UpdateShoutButton)
-  else
-    UpdateShoutButton()
-  end
-
-  btn:SetScript("OnClick", function()
-    -- Toggle between commanding and battle
-    AA_CONFIG["shoutType"] = (AA_CONFIG["shoutType"] == "commanding") and "battle" or "commanding"
-    UpdateShoutButton()
-    print("AutoAdal: Shout Type = " .. AA_CONFIG["shoutType"])
-  end)
-
   frame.shoutLabel = label
-  frame.shoutButton = btn
+
+  -- Create dropdown menu for shout type (TBC 2.4.3 compatible)
+  local dropdownName = isInterfaceOptions and "AAInterfaceShoutDropdown" or "AAShoutDropdown"
+  local dropdown = CreateFrame("Frame", dropdownName, frame, "UIDropDownMenuTemplate")
+  dropdown:SetPoint("TOPLEFT", label, "BOTTOMLEFT", -15, -5)
+  frame.shoutDropdown = dropdown
+
+  -- TBC 2.4.3 compatible dropdown functions
+  local function ShoutDropdown_OnClick()
+    -- In TBC 2.4.3, 'this' refers to the clicked menu item
+    local value = this.value
+    AA_CONFIG["shoutType"] = value
+    UIDropDownMenu_SetSelectedValue(dropdown, value)
+    print("AutoAdal: Shout Type = " .. value)
+  end
+
+  local function ShoutDropdown_Initialize()
+    local info = {}
+
+    -- Commanding Shout option
+    info.text = "Commanding Shout"
+    info.value = "commanding"
+    info.func = ShoutDropdown_OnClick
+    info.checked = (AA_CONFIG["shoutType"] == "commanding")
+    UIDropDownMenu_AddButton(info)
+
+    -- Battle Shout option
+    info = {}
+    info.text = "Battle Shout"
+    info.value = "battle"
+    info.func = ShoutDropdown_OnClick
+    info.checked = (AA_CONFIG["shoutType"] == "battle")
+    UIDropDownMenu_AddButton(info)
+  end
+
+  -- Initialize dropdown (TBC 2.4.3 parameter order)
+  UIDropDownMenu_Initialize(dropdown, ShoutDropdown_Initialize)
+  UIDropDownMenu_SetWidth(130, dropdown)
+  UIDropDownMenu_SetSelectedValue(dropdown, AA_CONFIG["shoutType"])
+
+  -- For Interface Options, we need to reset selection when shown
+  if isInterfaceOptions then
+    dropdown:SetScript("OnShow", function()
+      UIDropDownMenu_SetSelectedValue(dropdown, AA_CONFIG["shoutType"])
+    end)
+  end
 
   -- Create quest checkboxes
   local questLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  questLabel:SetPoint("TOPLEFT", frame.shoutButton, "BOTTOMLEFT", 0, -20)
+  questLabel:SetPoint("TOPLEFT", frame.shoutDropdown, "BOTTOMLEFT", 15, -15)
   questLabel:SetText("Auto Quest Buffs:")
   frame.questLabel = questLabel
 
