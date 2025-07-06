@@ -1,5 +1,5 @@
 ## Interface: 20400
-## Title: AutoAdal |cffff0000 -Dep|r
+## Title: AutoAdal
 ## Author: Dep
 ## Version: 1.0
 ## Notes: Auto accept group buffs from adal for tbc5man
