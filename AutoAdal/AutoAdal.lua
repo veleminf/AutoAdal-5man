@@ -80,77 +80,126 @@ end
 -- Create a frame to register and handle events
 local aaframe = CreateFrame("Frame", "AAEventFrame", UIParent);
 
--- Create config UI
+-- Create unified config UI
 local configFrame = nil
 
-local function CreateConfigUI()
-  if configFrame then
-    return configFrame
+-- Unified function to create configuration UI for both standalone and interface options
+local function CreateUnifiedConfigUI(isInterfaceOptions)
+  local frame
+  local checkboxTemplate = isInterfaceOptions and "InterfaceOptionsCheckButtonTemplate" or "UICheckButtonTemplate"
+  local textProperty = isInterfaceOptions and "Text" or "text"
+
+  if isInterfaceOptions then
+    -- Create Interface Options panel
+    frame = CreateFrame("Frame", "AutoAdalOptionsPanel", UIParent)
+    frame.name = "AutoAdal"
+  else
+    -- Create standalone config frame
+    if configFrame then
+      return configFrame
+    end
+    frame = CreateFrame("Frame", "AutoAdalConfigFrame", UIParent)
+    frame:SetSize(400, 500)
+    frame:SetPoint("CENTER")
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetClampedToScreen(true)
+
+    -- Add a background and border
+    frame:SetBackdrop({
+      bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+      edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+      tile = true,
+      tileSize = 32,
+      edgeSize = 32,
+      insets = { left = 11, right = 12, top = 12, bottom = 11 }
+    })
+
+    -- Add a close button in the top-right corner
+    local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+
+    frame:Hide()
+    configFrame = frame
   end
-
-  -- Create the main frame
-  configFrame = CreateFrame("Frame", "AutoAdalConfigFrame", UIParent)
-  configFrame:SetSize(400, 500)
-  configFrame:SetPoint("CENTER")
-  configFrame:SetMovable(true)
-  configFrame:EnableMouse(true)
-  configFrame:RegisterForDrag("LeftButton")
-  configFrame:SetScript("OnDragStart", configFrame.StartMoving)
-  configFrame:SetScript("OnDragStop", configFrame.StopMovingOrSizing)
-  configFrame:SetClampedToScreen(true)
-
-  -- Add a background and border
-  configFrame:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-    tile = true,
-    tileSize = 32,
-    edgeSize = 32,
-    insets = { left = 11, right = 12, top = 12, bottom = 11 }
-  })
-
-  -- Add a close button in the top-right corner
-  local closeButton = CreateFrame("Button", nil, configFrame, "UIPanelCloseButton")
-  closeButton:SetPoint("TOPRIGHT", configFrame, "TOPRIGHT", -5, -5)
-
-  configFrame:Hide()
 
   -- Set the title
-  configFrame.title = configFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  configFrame.title:SetPoint("TOP", configFrame, "TOP", 0, -5)
-  configFrame.title:SetText("AutoAdal Configuration")
+  local titleFont = isInterfaceOptions and "GameFontNormalLarge" or "GameFontHighlight"
+  local titleX = isInterfaceOptions and 16 or 0
+  local titleY = isInterfaceOptions and -16 or -5
+  local titleAnchor = isInterfaceOptions and "TOPLEFT" or "TOP"
+
+  frame.title = frame:CreateFontString(nil, "OVERLAY", titleFont)
+  frame.title:SetPoint(titleAnchor, frame, titleAnchor, titleX, titleY)
+  frame.title:SetText("AutoAdal Configuration")
+
+  -- Add subtitle for interface options
+  local firstElementAnchor = frame.title
+  if isInterfaceOptions then
+    frame.subtitle = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.subtitle:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -8)
+    frame.subtitle:SetText("Configure AutoAdal addon settings")
+    firstElementAnchor = frame.subtitle
+  end
 
   -- Create enable/disable checkbox
-  configFrame.enableCheckbox = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
-  configFrame.enableCheckbox:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 20, -40)
+  frame.enableCheckbox = CreateFrame("CheckButton", nil, frame, checkboxTemplate)
+
+  if isInterfaceOptions then
+    frame.enableCheckbox:SetPoint("TOPLEFT", firstElementAnchor, "BOTTOMLEFT", 0, -20)
+  else
+    -- For standalone, position relative to frame's TOPLEFT to avoid rightward shift
+    frame.enableCheckbox:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -40)
+  end
 
   -- TBC-compatible text setting: create text if it doesn't exist
-  if not configFrame.enableCheckbox.text then
-    configFrame.enableCheckbox.text = configFrame.enableCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    configFrame.enableCheckbox.text:SetPoint("LEFT", configFrame.enableCheckbox, "RIGHT", 5, 0)
+  if not frame.enableCheckbox[textProperty] then
+    frame.enableCheckbox[textProperty] = frame.enableCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.enableCheckbox[textProperty]:SetPoint("LEFT", frame.enableCheckbox, "RIGHT", 5, 0)
   end
-  configFrame.enableCheckbox.text:SetText("Enable AutoAdal")
-  configFrame.enableCheckbox:SetChecked(AA_CONFIG["enabled"])
-  configFrame.enableCheckbox:SetScript("OnClick", function(self)
+  frame.enableCheckbox[textProperty]:SetText("Enable AutoAdal")
+
+  -- Set up checkbox behavior
+  if isInterfaceOptions then
+    frame.enableCheckbox:SetScript("OnShow", function(self)
+      self:SetChecked(AA_CONFIG["enabled"])
+    end)
+  else
+    frame.enableCheckbox:SetChecked(AA_CONFIG["enabled"])
+  end
+
+  frame.enableCheckbox:SetScript("OnClick", function(self)
     AA_CONFIG["enabled"] = self:GetChecked()
     print("AutoAdal: Addon " .. (AA_CONFIG["enabled"] and "ENABLED" or "DISABLED"))
   end)
 
-  -- Create shout type selection (using button instead of dropdown for TBC compatibility)
-  configFrame.shoutLabel = configFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  configFrame.shoutLabel:SetPoint("TOPLEFT", configFrame.enableCheckbox, "BOTTOMLEFT", 0, -20)
-  configFrame.shoutLabel:SetText("Shout Type:")
+  -- Create shout type selection
+  frame.shoutLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  frame.shoutLabel:SetPoint("TOPLEFT", frame.enableCheckbox, "BOTTOMLEFT", 0, -20)
+  frame.shoutLabel:SetText("Shout Type:")
 
-  configFrame.shoutButton = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
-  configFrame.shoutButton:SetSize(150, 25)
-  configFrame.shoutButton:SetPoint("TOPLEFT", configFrame.shoutLabel, "BOTTOMLEFT", 0, -5)
+  frame.shoutButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+  frame.shoutButton:SetSize(150, 25)
+  frame.shoutButton:SetPoint("TOPLEFT", frame.shoutLabel, "BOTTOMLEFT", 0, -5)
 
   local function UpdateShoutButtonText()
     local displayText = AA_CONFIG["shoutType"]:gsub("^%l", string.upper)
-    configFrame.shoutButton:SetText(displayText)
+    frame.shoutButton:SetText(displayText)
   end
 
-  configFrame.shoutButton:SetScript("OnClick", function(self)
+  -- Set up shout button behavior
+  if isInterfaceOptions then
+    frame.shoutButton:SetScript("OnShow", function(self)
+      UpdateShoutButtonText()
+    end)
+  else
+    UpdateShoutButtonText()
+  end
+
+  frame.shoutButton:SetScript("OnClick", function(self)
     -- Toggle between commanding and battle
     if AA_CONFIG["shoutType"] == "commanding" then
       AA_CONFIG["shoutType"] = "battle"
@@ -161,29 +210,36 @@ local function CreateConfigUI()
     print("AutoAdal: Shout Type = " .. AA_CONFIG["shoutType"])
   end)
 
-  UpdateShoutButtonText()
-
   -- Create quest checkboxes
-  configFrame.questLabel = configFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  configFrame.questLabel:SetPoint("TOPLEFT", configFrame.shoutButton, "BOTTOMLEFT", 0, -20)
-  configFrame.questLabel:SetText("Auto Quest Buffs:")
+  frame.questLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  frame.questLabel:SetPoint("TOPLEFT", frame.shoutButton, "BOTTOMLEFT", 0, -20)
+  frame.questLabel:SetText("Auto Quest Buffs:")
 
   local questCheckboxes = {}
   local yOffset = -5
 
   for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
     local displayName = questDisplayNames[questName] or questName
-    local checkbox = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
-    checkbox:SetPoint("TOPLEFT", configFrame.questLabel, "BOTTOMLEFT", 0, yOffset)
+    local checkbox = CreateFrame("CheckButton", nil, frame, checkboxTemplate)
+    checkbox:SetPoint("TOPLEFT", frame.questLabel, "BOTTOMLEFT", 0, yOffset)
 
     -- TBC-compatible text setting: create text if it doesn't exist
-    if not checkbox.text then
-      checkbox.text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-      checkbox.text:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
+    if not checkbox[textProperty] then
+      checkbox[textProperty] = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+      checkbox[textProperty]:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
     end
-    checkbox.text:SetText(displayName)
-    checkbox:SetChecked(enabled)
+    checkbox[textProperty]:SetText(displayName)
     checkbox.questName = questName
+
+    -- Set up quest checkbox behavior
+    if isInterfaceOptions then
+      checkbox:SetScript("OnShow", function(self)
+        self:SetChecked(AA_CONFIG["autoQuests"][self.questName])
+      end)
+    else
+      checkbox:SetChecked(enabled)
+    end
+
     checkbox:SetScript("OnClick", function(self)
       AA_CONFIG["autoQuests"][self.questName] = self:GetChecked()
       local status = self:GetChecked() and "enabled" or "disabled"
@@ -194,21 +250,35 @@ local function CreateConfigUI()
     yOffset = yOffset - 25
   end
 
-  -- Create close button
-  configFrame.closeButton = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
-  configFrame.closeButton:SetSize(100, 25)
-  configFrame.closeButton:SetPoint("BOTTOM", configFrame, "BOTTOM", 0, 15)
-  configFrame.closeButton:SetText("Close")
-  configFrame.closeButton:SetScript("OnClick", function()
-    configFrame:Hide()
-  end)
+  -- Add specific elements for each type
+  if isInterfaceOptions then
+    -- Add note about slash command
+    frame.slashNote = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.slashNote:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 16, 16)
+    frame.slashNote:SetText("You can also use '/aa config' to open the standalone configuration window.")
+  else
+    -- Create close button for standalone
+    frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    frame.closeButton:SetSize(100, 25)
+    frame.closeButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 15)
+    frame.closeButton:SetText("Close")
+    frame.closeButton:SetScript("OnClick", function()
+      frame:Hide()
+    end)
+  end
 
-  return configFrame
+  return frame
 end
 
 local function ShowConfigUI()
-  local frame = CreateConfigUI()
+  local frame = CreateUnifiedConfigUI(false)
   frame:Show()
+end
+
+-- Register with Interface Options
+local function RegisterInterfaceOptions()
+  local panel = CreateUnifiedConfigUI(true)
+  InterfaceOptions_AddCategory(panel)
 end
 
 -- Create a slash command handler function
@@ -842,7 +912,11 @@ local function OnEvent(self, event, ...)
   if (event == "GOSSIP_SHOW") then
     OnGossipShowEnhanced(self, event, ...)
   elseif (event == "ADDON_LOADED") then
-    InitConfig()
+    local addonName = ...
+    if addonName == "AutoAdal" then
+      InitConfig()
+      RegisterInterfaceOptions()
+    end
   elseif (event == "UPDATE_MOUSEOVER_UNIT") then
     OnMouseOver(self, event, ...)
   elseif (event == "GOSSIP_CLOSED") then
