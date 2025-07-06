@@ -68,6 +68,7 @@ Use `/aa` followed by these commands:
 ```
 /aa                     - Show all current settings
 /aa help                - Show help menu
+/aa config              - Open graphical configuration interface
 ```
 
 ### **Basic Controls**
@@ -97,6 +98,22 @@ Use `/aa` followed by these commands:
 - `savvy` - Slip'kik's Savvy
 - `ferocity` - Fengus' Ferocity
 - `moxie` - Mol'dar's Moxie
+
+## 🖥️ Graphical Configuration Interface
+
+AutoAdal includes a user-friendly graphical interface for configuring all addon options. To access it:
+
+```
+/aa config
+```
+
+The configuration window allows you to:
+- **Enable/Disable** the addon with a simple checkbox
+- **Select Shout Type** from a dropdown menu (Commanding or Battle)
+- **Toggle Quest Buffs** individually with checkboxes
+- All changes take effect immediately
+
+This provides a more intuitive way to configure the addon compared to using slash commands.
 
 ## 🕒 Smart Duration Checking
 

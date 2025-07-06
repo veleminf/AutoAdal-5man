@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 AA_CONFIG = {
   enabled = true,
   shoutType = "commanding",
@@ -66,7 +67,7 @@ local function print(...)
   local g = 211;
   local b = 196;
   local color = string.format("|cff%02x%02x%02x", r, g, b);
-  
+
   DEFAULT_CHAT_FRAME:AddMessage(color .. message);
 end
 
@@ -79,19 +80,150 @@ end
 -- Create a frame to register and handle events
 local aaframe = CreateFrame("Frame", "AAEventFrame", UIParent);
 
+-- Create config UI
+local configFrame = nil
+
+local function CreateConfigUI()
+  if configFrame then
+    return configFrame
+  end
+
+  -- Create the main frame
+  configFrame = CreateFrame("Frame", "AutoAdalConfigFrame", UIParent)
+  configFrame:SetSize(400, 500)
+  configFrame:SetPoint("CENTER")
+  configFrame:SetMovable(true)
+  configFrame:EnableMouse(true)
+  configFrame:RegisterForDrag("LeftButton")
+  configFrame:SetScript("OnDragStart", configFrame.StartMoving)
+  configFrame:SetScript("OnDragStop", configFrame.StopMovingOrSizing)
+  configFrame:SetClampedToScreen(true)
+
+  -- Add a background and border
+  configFrame:SetBackdrop({
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    tile = true,
+    tileSize = 32,
+    edgeSize = 32,
+    insets = { left = 11, right = 12, top = 12, bottom = 11 }
+  })
+
+  -- Add a close button in the top-right corner
+  local closeButton = CreateFrame("Button", nil, configFrame, "UIPanelCloseButton")
+  closeButton:SetPoint("TOPRIGHT", configFrame, "TOPRIGHT", -5, -5)
+
+  configFrame:Hide()
+
+  -- Set the title
+  configFrame.title = configFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  configFrame.title:SetPoint("TOP", configFrame, "TOP", 0, -5)
+  configFrame.title:SetText("AutoAdal Configuration")
+
+  -- Create enable/disable checkbox
+  configFrame.enableCheckbox = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
+  configFrame.enableCheckbox:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 20, -40)
+
+  -- TBC-compatible text setting: create text if it doesn't exist
+  if not configFrame.enableCheckbox.text then
+    configFrame.enableCheckbox.text = configFrame.enableCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    configFrame.enableCheckbox.text:SetPoint("LEFT", configFrame.enableCheckbox, "RIGHT", 5, 0)
+  end
+  configFrame.enableCheckbox.text:SetText("Enable AutoAdal")
+  configFrame.enableCheckbox:SetChecked(AA_CONFIG["enabled"])
+  configFrame.enableCheckbox:SetScript("OnClick", function(self)
+    AA_CONFIG["enabled"] = self:GetChecked()
+    print("AutoAdal: Addon " .. (AA_CONFIG["enabled"] and "ENABLED" or "DISABLED"))
+  end)
+
+  -- Create shout type selection (using button instead of dropdown for TBC compatibility)
+  configFrame.shoutLabel = configFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  configFrame.shoutLabel:SetPoint("TOPLEFT", configFrame.enableCheckbox, "BOTTOMLEFT", 0, -20)
+  configFrame.shoutLabel:SetText("Shout Type:")
+
+  configFrame.shoutButton = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
+  configFrame.shoutButton:SetSize(150, 25)
+  configFrame.shoutButton:SetPoint("TOPLEFT", configFrame.shoutLabel, "BOTTOMLEFT", 0, -5)
+
+  local function UpdateShoutButtonText()
+    local displayText = AA_CONFIG["shoutType"]:gsub("^%l", string.upper)
+    configFrame.shoutButton:SetText(displayText)
+  end
+
+  configFrame.shoutButton:SetScript("OnClick", function(self)
+    -- Toggle between commanding and battle
+    if AA_CONFIG["shoutType"] == "commanding" then
+      AA_CONFIG["shoutType"] = "battle"
+    else
+      AA_CONFIG["shoutType"] = "commanding"
+    end
+    UpdateShoutButtonText()
+    print("AutoAdal: Shout Type = " .. AA_CONFIG["shoutType"])
+  end)
+
+  UpdateShoutButtonText()
+
+  -- Create quest checkboxes
+  configFrame.questLabel = configFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  configFrame.questLabel:SetPoint("TOPLEFT", configFrame.shoutButton, "BOTTOMLEFT", 0, -20)
+  configFrame.questLabel:SetText("Auto Quest Buffs:")
+
+  local questCheckboxes = {}
+  local yOffset = -5
+
+  for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
+    local displayName = questDisplayNames[questName] or questName
+    local checkbox = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
+    checkbox:SetPoint("TOPLEFT", configFrame.questLabel, "BOTTOMLEFT", 0, yOffset)
+
+    -- TBC-compatible text setting: create text if it doesn't exist
+    if not checkbox.text then
+      checkbox.text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+      checkbox.text:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
+    end
+    checkbox.text:SetText(displayName)
+    checkbox:SetChecked(enabled)
+    checkbox.questName = questName
+    checkbox:SetScript("OnClick", function(self)
+      AA_CONFIG["autoQuests"][self.questName] = self:GetChecked()
+      local status = self:GetChecked() and "enabled" or "disabled"
+      print("AutoAdal: Quest buff '" .. displayName .. "' " .. status)
+    end)
+
+    tinsert(questCheckboxes, checkbox)
+    yOffset = yOffset - 25
+  end
+
+  -- Create close button
+  configFrame.closeButton = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
+  configFrame.closeButton:SetSize(100, 25)
+  configFrame.closeButton:SetPoint("BOTTOM", configFrame, "BOTTOM", 0, 15)
+  configFrame.closeButton:SetText("Close")
+  configFrame.closeButton:SetScript("OnClick", function()
+    configFrame:Hide()
+  end)
+
+  return configFrame
+end
+
+local function ShowConfigUI()
+  local frame = CreateConfigUI()
+  frame:Show()
+end
+
 -- Create a slash command handler function
 local function SlashCmdHandler(msg)
   -- Convert the message to lowercase
   msg = msg:lower();
   local arguments = tokenize(msg);
-  
+
   -- Show all current settings if no arguments
   if (#arguments == 0) then
     print("AutoAdal Current Settings:")
     local addonStatus = AA_CONFIG["enabled"] and "ENABLED" or "DISABLED"
     print("  Addon: " .. addonStatus)
     print("  Shout Type: " .. AA_CONFIG["shoutType"])
-    
+
     local enabledQuests = {}
     for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
       if enabled then
@@ -106,12 +238,15 @@ local function SlashCmdHandler(msg)
     end
     return
   end
-  
+
   -- Check the message content
-  if (arguments[1] == "help") then
+  if (arguments[1] == "config") then
+    ShowConfigUI()
+  elseif (arguments[1] == "help") then
     print("AutoAdal Commands:")
     print("  /aa                     - Show all current settings")
     print("  /aa help                - Show this help")
+    print("  /aa config              - Open configuration interface")
     print("")
     print("Control:")
     print("  /aa enable              - Enable addon")
@@ -175,7 +310,7 @@ local function SlashCmdHandler(msg)
       -- First validate ALL quest names before making any changes
       local validQuests = {}
       local hasInvalidQuest = false
-      
+
       for i = 2, #arguments do
         local questArg = arguments[i]:lower()
         local questName = questAbbreviations[questArg]
@@ -186,14 +321,14 @@ local function SlashCmdHandler(msg)
           hasInvalidQuest = true
         end
       end
-      
+
       -- Only proceed if ALL quest names are valid
       if not hasInvalidQuest then
         -- Disable all quests first
         for questName, _ in pairs(AA_CONFIG["autoQuests"]) do
           AA_CONFIG["autoQuests"][questName] = false
         end
-        
+
         -- Then enable the valid ones
         local enabledQuests = {}
         for _, questName in ipairs(validQuests) do
@@ -201,7 +336,7 @@ local function SlashCmdHandler(msg)
           local displayName = questDisplayNames[questName] or questName
           tinsert(enabledQuests, displayName)
         end
-        
+
         if #enabledQuests > 0 then
           print("AutoAdal: Enabled quest buffs: " .. table.concat(enabledQuests, ", "))
         else
@@ -269,9 +404,8 @@ local function stripQuestText(text)
   text = text:gsub('|c%x%x%x%x%x%x%x%x(.-)|r','%1')
   text = text:gsub('%[.*%]%s*','')
   text = text:gsub('(.+) %(.+%)', '%1')
-  if text.trim then
-    text = text:trim()
-  end
+  -- TBC-compatible trim: remove leading and trailing whitespace
+  text = text:gsub('^%s*(.-)%s*$', '%1')
   return text
 end
 
@@ -279,7 +413,7 @@ end
 local function getBuffNameForQuest(questName)
   if not questName then return nil end
   local cleanName = stripQuestText(questName)
-  
+
   -- Handle both the full quest name and the shortened one
   if cleanName == "World Buff Blessing" or cleanName == "World Buff Blessing - 10 Token of Achievement Donation" then
     return "Songflower Serenade"
@@ -312,7 +446,7 @@ local function hasClassBuffs()
   local hasPrayerOfFortitude = false
   local hasGreaterBlessingOfKings = false
   local hasGiftOfTheWild = false
-  
+
   local i = 1
   while UnitBuff("player", i) do
     local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
@@ -331,7 +465,7 @@ local function hasClassBuffs()
     end
     i = i + 1
   end
-  
+
   return hasPrayerOfFortitude and hasGreaterBlessingOfKings and hasGiftOfTheWild
 end
 
@@ -343,7 +477,7 @@ local function hasShoutBuff()
   else
     shoutBuffName = "Commanding Shout"
   end
-  
+
   local i = 1
   while UnitBuff("player", i) do
     local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
@@ -374,14 +508,14 @@ end
 -- Count remaining buffs that need to be applied based on specific NPC capabilities
 local function countRemainingBuffs(npcName)
   local buffCount = 0
-  
+
   -- All NPCs except Alera provide class buffs
   if npcName ~= "Alera" then
     if not hasClassBuffs() then
       buffCount = buffCount + 1 -- Class buffs count as one action
     end
   end
-  
+
   -- Alera and Minutulus Naaru Guardian provide quest buffs
   if npcName == "Alera" or npcName == "Minutulus Naaru Guardian" then
     for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
@@ -390,18 +524,18 @@ local function countRemainingBuffs(npcName)
       end
     end
   end
-  
+
   -- Only Minutulus Naaru Guardian provides shout and blood pact buffs
   if npcName == "Minutulus Naaru Guardian" then
     if not hasShoutBuff() then
       buffCount = buffCount + 1
     end
-    
+
     if not hasBloodPactBuff() then
       buffCount = buffCount + 1
     end
   end
-  
+
   return buffCount
 end
 
@@ -414,15 +548,15 @@ local function refreshTooltip()
     if npcName and ArrIncludes(buffNPCs, npcName) then
       local remainingBuffs = countRemainingBuffs(npcName)
       local heroResetNeeded = ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD())
-      
+
       if heroResetNeeded then
         remainingBuffs = remainingBuffs + 1
       end
-      
+
       -- Clear existing tooltip lines and add the updated one
       GameTooltip:ClearLines()
       GameTooltip:SetUnit("mouseover")
-      
+
       if remainingBuffs > 0 then
         GameTooltip:AddLine("AutoAdal: Shift+Right-Click to automatically get buffs (" .. remainingBuffs .. " remaining)")
       else
@@ -444,11 +578,11 @@ local function OnMouseOver(self, event, ...)
   if (ArrIncludes(buffNPCs, npcName)) then
     local remainingBuffs = countRemainingBuffs(npcName)
     local heroResetNeeded = ((npcName == "Naaru Guardian" or npcName == "A'dal") and IsHeroCD())
-    
+
     if heroResetNeeded then
       remainingBuffs = remainingBuffs + 1
     end
-    
+
     if remainingBuffs > 0 then
       GameTooltip:AddLine("AutoAdal: Shift+Right-Click to automatically get buffs (" .. remainingBuffs .. " remaining)")
     else
@@ -512,7 +646,7 @@ local function handleBuffs(self, event, ...)
       -- Determine shout configuration for messages
       local shoutGossipOption = ""
       local shoutDisplayName = ""
-      
+
       if (AA_CONFIG["shoutType"] == "battle") then
         shoutGossipOption = "Empower my group with Battle Shout"
         shoutDisplayName = "Battle Shout"
@@ -520,7 +654,7 @@ local function handleBuffs(self, event, ...)
         shoutGossipOption = "Empower my group with Commanding Shout"
         shoutDisplayName = "Commanding Shout"
       end
-      
+
       -- Select option based on missing buffs (priority order)
       if not hasClassBuffs() then
         if (FindAndSelectGossipOption("Empower my group with all the class buffs")) then
@@ -544,7 +678,7 @@ local function handleBuffs(self, event, ...)
       autoAcceptingBuffs = false
     end
   end
-  
+
   return false -- No buffs were applied
 end
 
@@ -554,7 +688,7 @@ local function canAutoQuest(questName)
   if not AA_CONFIG["enabled"] then
     return false
   end
-  
+
   if questName then
     -- Check if this specific quest is enabled
     local cleanName = stripQuestText(questName)
@@ -583,10 +717,10 @@ local function handleQuests(self, event, ...)
   if (not AA_CONFIG["enabled"] or not canAutoQuest()) then
     return false
   end
-  
+
   local button
   local text
-  
+
   for i = 1, 32 do
     button = _G['GossipTitleButton' .. i]
     if button and button:IsVisible() then
@@ -598,7 +732,7 @@ local function handleQuests(self, event, ...)
       end
     end
   end
-  
+
   return false -- No quest action was taken
 end
 
@@ -606,12 +740,12 @@ local function OnQuestDetail(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
     return
   end
-  
+
   local npcName = UnitName("target")
   if (not ArrIncludes(buffNPCs, npcName)) then
     return
   end
-  
+
   local questTitle = GetTitleText()
   if (isAutoQuest(questTitle) and canAutoQuest(questTitle)) then
     -- Only auto-accept if player doesn't already have the buff
@@ -628,12 +762,12 @@ local function OnQuestComplete(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
     return
   end
-  
+
   local npcName = UnitName("target")
   if (not ArrIncludes(buffNPCs, npcName)) then
     return
   end
-  
+
   local questTitle = GetTitleText()
   if (isAutoQuest(questTitle) and canAutoQuest(questTitle)) then
     if GetNumQuestChoices() <= 1 then
@@ -647,12 +781,12 @@ local function OnQuestProgress(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
     return
   end
-  
+
   local npcName = UnitName("target")
   if (not ArrIncludes(buffNPCs, npcName)) then
     return
   end
-  
+
   if IsQuestCompletable() then
     local questTitle = GetTitleText()
     if (isAutoQuest(questTitle) and canAutoQuest(questTitle)) then
@@ -667,16 +801,16 @@ local function OnGossipShowEnhanced(self, event, ...)
   if (not AA_CONFIG["enabled"]) then
     return
   end
-  
+
   local npcName = UnitName("target")
   if (not IsShiftKeyDown() or not ArrIncludes(buffNPCs, npcName)) then
     return
   end
-  
+
   -- Handle buffs first and check if any were applied
   local buffsApplied = handleBuffs(self, event, ...)
   local questsHandled = false
-  
+
   -- Only handle quest selection if no buffs were applied
   if (not buffsApplied) then
     questsHandled = handleQuests(self, event, ...)
@@ -685,12 +819,12 @@ local function OnGossipShowEnhanced(self, event, ...)
       print("AutoAdal: All buffs already present.")
     end
   end
-  
+
   -- Refresh tooltip if buffs or quests were applied (with delay to allow server to apply buffs)
   if buffsApplied or questsHandled then
     -- Use different delays: 0.3s for buffs, 0.6s for quests (quest completion takes longer)
     local delay = buffsApplied and 0.3 or 1
-    
+
     -- Use TBC-compatible timer approach
     local delayFrame = CreateFrame("Frame")
     local startTime = GetTime()
@@ -701,7 +835,7 @@ local function OnGossipShowEnhanced(self, event, ...)
       end
     end)
   end
-  
+
 end
 
 local function OnEvent(self, event, ...)
