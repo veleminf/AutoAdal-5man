@@ -117,10 +117,6 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
       insets = { left = 11, right = 12, top = 12, bottom = 11 }
     })
 
-    -- Close button
-    CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-      :SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
-
     frame:Hide()
     configFrame = frame
   end
