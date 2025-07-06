@@ -26,31 +26,22 @@ AutoAdal is a World of Warcraft addon that automates buff application and quest 
 - **Combat-ready buffing** - get fully buffed quickly during active combat or between pulls
 - **Never miss a buff** - ensures you get all available buffs, preventing manual oversight
 
-## 🏛️ Compatible NPCs
-
-The addon works with these NPCs:
-- **A'dal** (Shattrath City)
-- **Minutulus Naaru Guardian** (Summoned buff bot)
-- **Naaru Guardian** (Located at dungeon/raid entrances)
-- **Alera** (Shattrath City - quest buffs only)
-
-## 🔧 Installation
+## 🔧 Quick Start
 
 1. [Download](https://github.com/veleminf/AutoAdal-5man/releases) the addon files
 2. Place the `AutoAdal` folder in your `Interface/AddOns/` folder
 3. Configure with `/aa config`
+4. Hold Shift+Right-Click on any buff NPC
 
-## ⚡ How to Use
-
+## ⚡ How it Works
 ### **Getting Buffs**
-1. **Hold Shift + Right-Click** on any compatible buff NPC
-2. The addon will automatically:
-   - Apply missing class buffs (Prayer of Fortitude, Greater Blessing of Kings, Gift of the Wild, and more...)
-   - Apply your configured shout buff (Battle Shout or Commanding Shout)
-   - Apply Blood Pact
-   - Reset Bloodlust/Heroism cooldown if it's on cooldown
+When you Shift + Right-Click on buff NPCs, the addon will automatically:
+- Apply missing **class buffs** (Prayer of Fortitude, Greater Blessing of Kings, Gift of the Wild, etc.)
+- Apply your configured **shout buff** (Battle Shout or Commanding Shout)
+- Apply **Blood Pact**
+- Reset Bloodlust/Heroism cooldown if it's on cooldown
 
-### **Quest Automation**
+### **Quest Buffs Automation (Optional)**
 When you Shift + Right-Click on buff NPCs, the addon can also automatically handle these quests:
 - **World Buff Blessing** - Grants Songflower Serenade buff (requires Token of Achievement)
 - **Slip'kik's Savvy** - DM tribute buff (requires Badge of Justice)
@@ -60,13 +51,12 @@ When you Shift + Right-Click on buff NPCs, the addon can also automatically hand
 > **Note:** Quest automation is disabled by default. Enable specific quests with `/aa quest` commands or through the configuration interface.
 
 
-## 🖥️ Configuration Options
+## 🖥️ Configuration
 
 AutoAdal provides multiple ways to configure your settings:
 
-### **Graphical Configuration Interface**
+### **Graphical Interface**
 
-Access the standalone configuration window with:
 ```
 /aa config
 ```
@@ -77,14 +67,6 @@ Escape → Interface → AddOns → AutoAdal
 ```
 
 ![AutoAdal Configuration Interface](https://github.com/user-attachments/assets/cfc3865a-40d7-4587-bb39-2a72b67c6178)
-
-The configuration interface allows you to:
-- **Enable/Disable** the addon with a simple checkbox
-- **Select Shout Type** from a dropdown menu (Commanding or Battle)
-- **Toggle Quest Buffs** individually with checkboxes
-- All changes take effect immediately
-
-This provides a more intuitive way to configure the addon compared to using slash commands.
 
 ### **Configuration Commands**
 
@@ -146,10 +128,17 @@ When you Shift + Right-Click, buffs are applied in this order:
 When you hover over buff NPCs, AutoAdal displays intelligent tooltips that show:
 - **Exact buff count** - See how many buffs that specific NPC can apply (e.g., "3 remaining")
 - **NPC-specific counts** - Each NPC shows only the buffs it can provide
-- **Real-time updates** - Tooltip refreshes automatically after each Shift + Right-Click
 - **Completion status** - Shows "All buffs already applied" when fully buffed
 
 ![AutoAdal Tooltip](https://github.com/user-attachments/assets/d1574923-a06c-4930-bec7-49dfd3e121f5)
+
+## 🏛️ Compatible NPCs
+
+The addon works with these NPCs:
+- **A'dal** (Shattrath City)
+- **Minutulus Naaru Guardian** (Summoned buff bot)
+- **Naaru Guardian** (Located at dungeon/raid entrances)
+- **Alera** (Shattrath City - quest buffs only)
 
 ## 💡 Example Usage
 
@@ -164,18 +153,6 @@ When you hover over buff NPCs, AutoAdal displays intelligent tooltips that show:
 2. Shift + Right-Click repeatedly until the addon says "AutoAdal: All buffs already present."
 3. Each Shift + Right-Click applies one buff or quest at a time
 
-**Check Your Settings:**
-```
-/aa
-```
-Shows something like:
-```
-AutoAdal Current Settings:
-  Addon: ENABLED
-  Shout Type: commanding
-  Auto Quest buffs: World Buff, Slip'kik's Savvy (2 enabled)
-```
-
 ## ❓ Troubleshooting
 
 **Addon not working?**
@@ -186,12 +163,8 @@ AutoAdal Current Settings:
 **Buffs not applying?**
 - Ensure you have the required currencies (Badge of Justice or Token of Achievement) for quests
 - Check that the NPC has the buffs you're trying to get
-- Verify your quest settings: `/aa quest`
-
-**Quest automation not working?**
-- Enable the quests you want: `/aa quest wb savvy ferocity moxie`
 - Make sure you don't already have the corresponding buffs
-- Verify you have the required currencies (Badge of Justice or Token of Achievement)
+- Verify your quest settings: `/aa quest`
 
 ---
 
