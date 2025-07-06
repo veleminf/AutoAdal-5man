@@ -9,7 +9,7 @@ AutoAdal is a World of Warcraft addon that automates buff application and quest 
 ### **Automatic Buff Application**
 - **Shift + Right-Click** on buff NPCs to automatically get your buffs
 - Intelligently checks what buffs you need and applies them in the right order
-- Monitors buff duration and reapplies when they're about to expire
+- Intelligently reapplies buffs only if they are close to expiring, saving you time.
 
 ### **Smart Quest Automation**
 - Automatically accepts and completes specific buff-related quests (requires Badge of Justice or Token of Achievement)
@@ -28,25 +28,32 @@ AutoAdal is a World of Warcraft addon that automates buff application and quest 
 
 ## 🔧 Quick Start
 
-1. [Download](https://github.com/veleminf/AutoAdal-5man/releases) the addon files
-2. Place the `AutoAdal` folder in your `Interface/AddOns/` folder
-3. Configure with `/aa config`
-4. Hold Shift+Right-Click on any buff NPC
+1. [Download](https://github.com/veleminf/AutoAdal-5man/releases) the addon files.
+2. Place the `AutoAdal` folder into your `Interface/AddOns/` folder.
+3. Log in and configure your preferences with `/aa config`.
+4. Target a compatible buff NPC (like A'dal) and **hold Shift while repeatedly Right-Clicking** until the addon tells you all buffs are applied.
 
-## ⚡ How it Works
-### **Getting Buffs**
-When you Shift + Right-Click on buff NPCs, the addon will automatically:
-- Apply missing **class buffs** (Prayer of Fortitude, Greater Blessing of Kings, Gift of the Wild, etc.)
-- Apply your configured **shout buff** (Battle Shout or Commanding Shout)
-- Apply **Blood Pact**
-- Reset Bloodlust/Heroism cooldown if it's on cooldown
+## ⚡ How to Use
+The core of this addon is simple: **Hold Shift and Right-Click** on a buff NPC.
+
+Each time you do this, the addon performs one action in a specific order. You may need to click several times to get all your buffs. The addon will tell you when you have everything.
+
+**What happens when you Shift + Right-Click?**
+
+The addon checks for and applies missing buffs in this priority:
+1.  **Class Buffs First**: Applies buffs like Prayer of Fortitude, Gift of the Wild, etc.
+2.  **Shout Buffs Second**: Applies your configured shout (Battle or Commanding).
+3.  **Blood Pact Third**: Applies the Blood Pact buff.
+4.  **Bloodlust/Heroism Reset**: Resets your cooldown if available.
+5.  **Quest Buffs (Optional)**: If you've enabled them, it will automatically accept and complete quests for powerful buffs like Songflower Serenade and Dire Maul tributes. (See configuration below).
+
 
 ### **Quest Buffs Automation (Optional)**
 When you Shift + Right-Click on buff NPCs, the addon can also automatically handle these quests:
-- **World Buff Blessing** - Grants Songflower Serenade buff (requires Token of Achievement)
-- **Slip'kik's Savvy** - DM tribute buff (requires Badge of Justice)
-- **Fengus' Ferocity** - DM tribute buff (requires Badge of Justice)  
-- **Mol'dar's Moxie** - DM tribute buff (requires Badge of Justice)
+- **World Buff Blessing** - Grants Songflower Serenade buff (requires `Token of Achievement`)
+- **Slip'kik's Savvy** - DM tribute buff (requires `Badge of Justice`)
+- **Fengus' Ferocity** - DM tribute buff (requires `Badge of Justice`)  
+- **Mol'dar's Moxie** - DM tribute buff (requires `Badge of Justice`)
 
 > **Note:** Quest automation is disabled by default. Enable specific quests with `/aa quest` commands or through the configuration interface.
 
@@ -114,15 +121,6 @@ The addon monitors your buff durations and will reapply buffs when they're about
 - **Shout Buffs**: Reapplied when less than 9 minutes remaining
 - **Quest Buffs**: Reapplied when less than 15 minutes remaining
 
-## 📋 Buff Priority System
-
-When you Shift + Right-Click, buffs are applied in this order:
-
-1. **Class Buffs First** - If you're missing any class buff (Prayer of Fortitude, Greater Blessing of Kings, Gift of the Wild, and more...)
-2. **Shout Buffs Second** - If you're missing your configured shout buff
-3. **Blood Pact Third** - If you're missing Blood Pact
-4. **Quest Handling Last** - Processes any enabled quest buffs
-
 ## 💬 Smart Tooltips
 
 When you hover over buff NPCs, AutoAdal displays intelligent tooltips that show:
@@ -140,18 +138,17 @@ The addon works with these NPCs:
 - **Naaru Guardian** (Located at dungeon/raid entrances)
 - **Alera** (Shattrath City - quest buffs only)
 
-## 💡 Example Usage
+## 💡 Example: Getting All Buffs
 
-**Basic Setup:**
-```
-/aa shout commanding
-/aa quest wb savvy
-```
-
-**Full Buff Session:**
-1. Target Minutulus Naaru Guardian
-2. Shift + Right-Click repeatedly until the addon says "AutoAdal: All buffs already present."
-3. Each Shift + Right-Click applies one buff or quest at a time
+1.  **First, set your preferences:**
+    ```
+    /aa shout commanding
+    /aa quest wb savvy ferocity moxie
+    ```
+2.  **Next, get your buffs:**
+    - Target a buff NPC (e.g., Minutulus Naaru Guardian).
+    - Hold **Shift** and **Right-Click** repeatedly. Each click will apply one buff or complete one quest.
+    - Continue clicking until the addon message says: "AutoAdal: All buffs already present".
 
 ## ❓ Troubleshooting
 
