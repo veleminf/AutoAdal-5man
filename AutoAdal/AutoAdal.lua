@@ -100,7 +100,7 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     if configFrame then return configFrame end
 
     frame = CreateFrame("Frame", "AutoAdalConfigFrame", UIParent)
-    frame:SetSize(400, 500)
+    frame:SetSize(400, 320)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)

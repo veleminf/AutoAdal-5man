@@ -76,7 +76,7 @@ Or find AutoAdal in your Interface Options menu:
 Escape → Interface → AddOns → AutoAdal
 ```
 
-![AutoAdal Configuration Interface](https://github.com/user-attachments/assets/2b960c29-fbb5-46ce-ba8e-b255d33132bf)
+![AutoAdal Configuration Interface](https://github.com/user-attachments/assets/cfc3865a-40d7-4587-bb39-2a72b67c6178)
 
 The configuration interface allows you to:
 - **Enable/Disable** the addon with a simple checkbox
