@@ -80,6 +80,17 @@ local function tokenize(str)
   return tokens
 end
 
+-- Quest helper functions needed for buff counting
+local function stripQuestText(text)
+  if not text then return end
+  text = text:gsub('|c%x%x%x%x%x%x%x%x(.-)|r','%1')
+  text = text:gsub('%[.*%]%s*','')
+  text = text:gsub('(.+) %(.+%)', '%1')
+  -- TBC-compatible trim: remove leading and trailing whitespace
+  text = text:gsub('^%s*(.-)%s*$', '%1')
+  return text
+end
+
 -- Create a frame to register and handle events
 local aaframe = CreateFrame("Frame", "AAEventFrame", UIParent);
 
@@ -504,17 +515,6 @@ local function IsHeroCD()
     return true
   end
   return false
-end
-
--- Quest helper functions needed for buff counting
-local function stripQuestText(text)
-  if not text then return end
-  text = text:gsub('|c%x%x%x%x%x%x%x%x(.-)|r','%1')
-  text = text:gsub('%[.*%]%s*','')
-  text = text:gsub('(.+) %(.+%)', '%1')
-  -- TBC-compatible trim: remove leading and trailing whitespace
-  text = text:gsub('^%s*(.-)%s*$', '%1')
-  return text
 end
 
 -- Get the buff name corresponding to a quest
