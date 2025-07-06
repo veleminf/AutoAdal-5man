@@ -38,8 +38,7 @@ The addon works with these NPCs:
 
 1. [Download](https://github.com/veleminf/AutoAdal-5man/releases) the addon files
 2. Place the `AutoAdal` folder in your `Interface/AddOns/` folder
-3. Configure with `/aa help`
-4. Connect to [TBC5MAN server](https://tbc5man.com/) and enjoy automated buffing!
+3. Configure with `/aa config`
 
 ## ⚡ How to Use
 
@@ -58,33 +57,59 @@ When you Shift + Right-Click on buff NPCs, the addon can also automatically hand
 - **Fengus' Ferocity** - DM tribute buff (requires Badge of Justice)  
 - **Mol'dar's Moxie** - DM tribute buff (requires Badge of Justice)
 
-> **Note:** Quest automation is disabled by default. Enable specific quests with `/aa quest` commands.
+> **Note:** Quest automation is disabled by default. Enable specific quests with `/aa quest` commands or through the configuration interface.
 
-## ⚙️ Configuration Commands
 
-Use `/aa` followed by these commands:
+## 🖥️ Configuration Options
 
-### **View Settings**
+AutoAdal provides multiple ways to configure your settings:
+
+### **Graphical Configuration Interface**
+
+Access the standalone configuration window with:
+```
+/aa config
+```
+
+Or find AutoAdal in your Interface Options menu:
+```
+Escape → Interface → AddOns → AutoAdal
+```
+
+![AutoAdal Configuration Interface](https://github.com/user-attachments/assets/2b960c29-fbb5-46ce-ba8e-b255d33132bf)
+
+The configuration interface allows you to:
+- **Enable/Disable** the addon with a simple checkbox
+- **Select Shout Type** from a dropdown menu (Commanding or Battle)
+- **Toggle Quest Buffs** individually with checkboxes
+- All changes take effect immediately
+
+This provides a more intuitive way to configure the addon compared to using slash commands.
+
+### **Configuration Commands**
+
+Alternatively, use `/aa` followed by these commands:
+
+**View Settings**
 ```
 /aa                     - Show all current settings
 /aa help                - Show help menu
-/aa config              - Open graphical configuration interface
 ```
 
-### **Basic Controls**
+**Basic Controls**
 ```
 /aa enable              - Enable the addon
 /aa disable             - Disable the addon
 ```
 
-### **Shout Configuration**
+**Shout Configuration**
 ```
 /aa shout commanding    - Use Commanding Shout (default)
 /aa shout battle        - Use Battle Shout
 /aa shout               - Show current shout setting
 ```
 
-### **Quest Configuration**
+**Quest Configuration**
 ```
 /aa quest               - Show enabled quest buffs
 /aa quest wb savvy      - Enable World Buff and Slip'kik's Savvy
@@ -98,22 +123,6 @@ Use `/aa` followed by these commands:
 - `savvy` - Slip'kik's Savvy
 - `ferocity` - Fengus' Ferocity
 - `moxie` - Mol'dar's Moxie
-
-## 🖥️ Graphical Configuration Interface
-
-AutoAdal includes a user-friendly graphical interface for configuring all addon options. To access it:
-
-```
-/aa config
-```
-
-The configuration window allows you to:
-- **Enable/Disable** the addon with a simple checkbox
-- **Select Shout Type** from a dropdown menu (Commanding or Battle)
-- **Toggle Quest Buffs** individually with checkboxes
-- All changes take effect immediately
-
-This provides a more intuitive way to configure the addon compared to using slash commands.
 
 ## 🕒 Smart Duration Checking
 
@@ -140,9 +149,7 @@ When you hover over buff NPCs, AutoAdal displays intelligent tooltips that show:
 - **Real-time updates** - Tooltip refreshes automatically after each Shift + Right-Click
 - **Completion status** - Shows "All buffs already applied" when fully buffed
 
-**Example tooltips:**
-- `AutoAdal: Shift+Right-Click to automatically get buffs (2 remaining)`
-- `AutoAdal: All buffs already applied`
+![AutoAdal Tooltip](https://github.com/user-attachments/assets/6dfd73f7-49ef-404b-b7fd-49c6483aa0ec)
 
 ## 💡 Example Usage
 
