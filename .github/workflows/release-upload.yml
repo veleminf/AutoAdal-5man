@@ -1,0 +1,27 @@
+name: Add Custom Asset to Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  upload-addon-zip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy README into AutoAdal
+        run: cp README.md AutoAdal/
+
+      - name: Zip AutoAdal folder with version tag in filename
+        run: |
+          zip -r AutoAdal-${{ github.ref_name }}.zip AutoAdal
+
+      - name: Upload versioned zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AutoAdal-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
