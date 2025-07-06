@@ -558,15 +558,15 @@ local function hasClassBuffs()
   while UnitBuff("player", i) do
     local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
     if buffName == "Prayer of Fortitude" then
-      if expirationTime == nil or expirationTime > 3000 then
+      if expirationTime ~= nil and expirationTime > 3000 then
         hasPrayerOfFortitude = true
       end
     elseif buffName == "Greater Blessing of Kings" then
-      if expirationTime == nil or expirationTime > 3000 then
+      if expirationTime ~= nil and expirationTime > 3000 then
         hasGreaterBlessingOfKings = true
       end
     elseif buffName == "Gift of the Wild" then
-      if expirationTime == nil or expirationTime > 3000 then
+      if expirationTime ~= nil and expirationTime > 3000 then
         hasGiftOfTheWild = true
       end
     end
@@ -590,7 +590,7 @@ local function hasShoutBuff()
     local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
     if buffName == shoutBuffName then
       -- Shout buff: valid if more than 9 minutes remaining
-      if expirationTime == nil or expirationTime > 540 then
+      if expirationTime ~= nil and expirationTime > 540 then
         return true
       end
     end
