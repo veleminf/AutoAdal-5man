@@ -126,21 +126,55 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     configFrame = frame
   end
 
-  -- Set the title
-  local titleFont = isInterfaceOptions and "GameFontNormalLarge" or "GameFontHighlight"
-  local titleX = isInterfaceOptions and 16 or 0
-  local titleY = isInterfaceOptions and -16 or -5
-  local titleAnchor = isInterfaceOptions and "TOPLEFT" or "TOP"
+  -- Title
+  ------------------------------------------------------------------
+  frame.Title = CreateFrame("Frame", "AutoAdalTitle", frame)
+  frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT")
+  frame.Title:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+  frame.Title:SetHeight(isInterfaceOptions and 24 or 22)
+  frame.Title:EnableMouse(true)
 
-  frame.title = frame:CreateFontString(nil, "OVERLAY", titleFont)
-  frame.title:SetPoint(titleAnchor, frame, titleAnchor, titleX, titleY)
-  frame.title:SetText("AutoAdal Configuration")
+  if not isInterfaceOptions then
+    -- Make standalone title draggable
+    frame.Title:SetScript("OnMouseDown", function() if frame:IsMovable() then frame:StartMoving() end end)
+    frame.Title:SetScript("OnMouseUp", function() frame:StopMovingOrSizing() end)
+
+    -- Create a proper title header texture (centered on text)
+    frame.titleTexture = frame:CreateTexture(nil, "ARTWORK")
+    frame.titleTexture:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
+    frame.titleTexture:SetWidth(300) -- Width will be adjusted based on title text
+    frame.titleTexture:SetHeight(64)
+    frame.titleTexture:SetPoint("TOP", frame, "TOP", 0, 12)
+  end
+
+  -- Create title text that sits on top of the texture
+  if isInterfaceOptions then
+    frame.TitleText = frame.Title:CreateFontString(nil, nil, "GameFontNormalLarge")
+    frame.TitleText:SetPoint("TOPLEFT", frame.Title, "TOPLEFT", 10, -4)
+    frame.TitleText:SetJustifyH("LEFT")
+  else
+    frame.TitleText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.TitleText:SetPoint("TOP", frame.titleTexture, "TOP", 0, -14)
+  end
+
+  frame.defaultTitle = "AutoAdal"
+  frame.TitleText:SetText(frame.defaultTitle)
+  frame.TitleText:SetTextColor(1, 1, 1, 0.95)
+
+  if not isInterfaceOptions then
+    -- Add version text in the top right, positioned to avoid the close button
+    frame.VersionText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.VersionText:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -9)
+    frame.VersionText:SetText("v|cffffffff1.0|r")
+    local f, s, p = frame.VersionText:GetFont()
+    frame.VersionText:SetFont(f, 8, p)
+  end
 
   -- Add subtitle for interface options
-  local firstElementAnchor = frame.title
+  local firstElementAnchor = frame.Title
   if isInterfaceOptions then
     frame.subtitle = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.subtitle:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -8)
+    frame.subtitle:SetPoint("TOPLEFT", frame.TitleText, "BOTTOMLEFT", 0, -4)
     frame.subtitle:SetText("Configure AutoAdal addon settings")
     firstElementAnchor = frame.subtitle
   end
@@ -151,8 +185,8 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
   if isInterfaceOptions then
     frame.enableCheckbox:SetPoint("TOPLEFT", firstElementAnchor, "BOTTOMLEFT", 0, -20)
   else
-    -- For standalone, position relative to frame's TOPLEFT to avoid rightward shift
-    frame.enableCheckbox:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -40)
+    -- For standalone, position relative to Title to maintain proper spacing
+    frame.enableCheckbox:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -35)
   end
 
   -- TBC-compatible text setting: create text if it doesn't exist
