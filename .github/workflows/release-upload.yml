@@ -12,6 +12,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract version number from tag
+        id: extract_version
+        run: |
+          VERSION=${{ github.ref_name }}
+          # Remove 'v' prefix if present
+          VERSION=${VERSION#v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
+
+      - name: Update version in files
+        run: |
+          # Replace version placeholders in TOC file
+          sed -i "s/@VERSION@/${{ env.VERSION }}/g" AutoAdal/AutoAdal.toc
+          # Replace version placeholder in Lua file
+          sed -i "s/@VERSION@/${{ env.VERSION }}/g" AutoAdal/AutoAdal.lua
+
       - name: Copy README into AutoAdal
         run: cp README.md AutoAdal/
 
