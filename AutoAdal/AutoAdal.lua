@@ -278,9 +278,10 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     end
 
     box:SetScript("OnClick", function(self)
-      AA_CONFIG["autoQuests"][self.questName] = self:GetChecked()
+      local isChecked = (self:GetChecked() == 1) and true or false
+      AA_CONFIG["autoQuests"][stripQuestText(self.questName)] = isChecked
       print("AutoAdal: Quest buff '" .. displayName .. "' " .. 
-            (self:GetChecked() and "enabled" or "disabled"))
+            (isChecked and "enabled" or "disabled"))
     end)
 
     tinsert(questBoxes, box)
