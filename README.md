@@ -149,7 +149,7 @@ When you hover over buff NPCs, AutoAdal displays intelligent tooltips that show:
 - **Real-time updates** - Tooltip refreshes automatically after each Shift + Right-Click
 - **Completion status** - Shows "All buffs already applied" when fully buffed
 
-![AutoAdal Tooltip](https://github.com/user-attachments/assets/6dfd73f7-49ef-404b-b7fd-49c6483aa0ec)
+![AutoAdal Tooltip](https://github.com/user-attachments/assets/d1574923-a06c-4930-bec7-49dfd3e121f5)
 
 ## 💡 Example Usage
 
