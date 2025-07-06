@@ -1,4 +1,7 @@
 ---@diagnostic disable: undefined-global
+-- This constant will be replaced during build
+local ADDON_VERSION = "@VERSION@"
+
 AA_CONFIG = {
   enabled = true,
   shoutType = "commanding",
@@ -165,7 +168,7 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     -- Add version text in the top right, positioned to avoid the close button
     frame.VersionText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.VersionText:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -9)
-    frame.VersionText:SetText("v|cffffffff1.0|r")
+    frame.VersionText:SetText("v|cffffffff" .. ADDON_VERSION .. "|r")
     local f, s, p = frame.VersionText:GetFont()
     frame.VersionText:SetFont(f, 8, p)
   end

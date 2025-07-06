@@ -1,6 +1,7 @@
 ## Interface: 20400
 ## Title: AutoAdal
 ## Author: Dep
+## Version: @VERSION@
 ## Notes: Auto accept group buffs from adal for tbc5man
 ## SavedVariables: AA_CONFIG
 
