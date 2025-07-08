@@ -3,6 +3,6 @@
 ## Author: Dep
 ## Version: @VERSION@
 ## Notes: Auto accept group buffs from adal for tbc5man
-## SavedVariablesPerCharacter: AA_CONFIG
+## SavedVariablesPerCharacter: AA_CONFIG, AA_BUFF_TRACKER
 
 AutoAdal.lua

@@ -41,6 +41,36 @@ local questDisplayNames = {
   ["Mol'dar's Moxie"] = "Mol'dar's Moxie"
 }
 
+local relevantBuffs = {
+  -- Priest
+  ["Prayer of Fortitude"] = true,
+  ["Prayer of Spirit"] = true,
+  ["Prayer of Shadow Protection"] = true,
+
+  -- Mage
+  ["Arcane Brilliance"] = true,
+
+  -- Druid
+  ["Mark of the Wild"] = true,
+  ["Gift of the Wild"] = true,
+
+  -- Paladin
+  ["Greater Blessing of Kings"] = true,
+  ["Greater Blessing of Might"] = true,
+  ["Greater Blessing of Wisdom"] = true,
+  ["Greater Blessing of Salvation"] = true,
+
+  -- Warrior shouts
+  ["Battle Shout"] = true,
+  ["Commanding Shout"] = true,
+
+  -- World Buffs
+  ["Songflower Serenade"] = true,
+  ["Fengus' Ferocity"] = true,
+  ["Mol'dar's Moxie"] = true,
+  ["Slip'kik's Savvy"] = true,
+}
+
 local function InitConfig()
   for key, value in pairs (AA_DefaultConfig) do
     if (AA_CONFIG[key] == nil) then
@@ -54,6 +84,7 @@ local function InitConfig()
       end
     end
   end
+  AA_BUFF_TRACKER = AA_BUFF_TRACKER or {}
 end
 
 -- Print args with color
@@ -291,7 +322,7 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     box:SetScript("OnClick", function(self)
       local isChecked = (self:GetChecked() == 1) and true or false
       AA_CONFIG["autoQuests"][stripQuestText(self.questName)] = isChecked
-      print("AutoAdal: Quest buff '" .. displayName .. "' " .. 
+      print("AutoAdal: Quest buff '" .. displayName .. "' " ..
             (isChecked and "enabled" or "disabled"))
     end)
 
@@ -490,13 +521,15 @@ aaframe:RegisterEvent("GOSSIP_CLOSED")
 aaframe:RegisterEvent("QUEST_DETAIL")
 aaframe:RegisterEvent("QUEST_COMPLETE")
 aaframe:RegisterEvent("QUEST_PROGRESS")
+aaframe:RegisterEvent("UNIT_AURA")
+aaframe:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian", "Alera" }
 
 -- Auto-quest specific quest names (full names as they appear in game)
 local autoQuestNames = {
   "World Buff Blessing - 10 Token of Achievement Donation",
-  "Slip'kik's Savvy", 
+  "Slip'kik's Savvy",
   "Fengus' Ferocity",
   "Mol'dar's Moxie"
 }
@@ -531,6 +564,21 @@ local function getBuffNameForQuest(questName)
   end
 end
 
+local function hasRequiredDuration(buffName, expirationTime, requiredDuration, defaultValue)
+  if expirationTime ~= nil then
+    print(("buff: " .. buffName .. " - has expirationTime: " .. tostring(expirationTime) .. "s"))
+    return expirationTime >= requiredDuration
+  else
+    if (AA_BUFF_TRACKER[buffName] and AA_BUFF_TRACKER[buffName].expiresAt) then
+      local storedRemaining = AA_BUFF_TRACKER[buffName].expiresAt - time()
+      print(("buff: " .. buffName .. ", stored expirationTime: " .. tostring(storedRemaining) .. "s"))
+      return storedRemaining >= requiredDuration
+    else
+      return defaultValue
+    end
+  end
+end
+
 -- Check if player has the buff corresponding to a quest with sufficient duration
 local function hasQuestBuff(questName)
   local buffName = getBuffNameForQuest(questName)
@@ -540,9 +588,7 @@ local function hasQuestBuff(questName)
     local playerBuffName, _, _, _, _, expirationTime = UnitBuff("player", i)
     if playerBuffName == buffName then
       -- Quest buffs: reapply if less than 15 minutes (900 seconds) remaining
-      if expirationTime == nil or expirationTime > 900 then
-        return true
-      end
+      return hasRequiredDuration(buffName, expirationTime, 900, true)
     end
     i = i + 1
   end
@@ -559,17 +605,11 @@ local function hasClassBuffs()
   while UnitBuff("player", i) do
     local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
     if buffName == "Prayer of Fortitude" then
-      if expirationTime ~= nil and expirationTime > 3000 then
-        hasPrayerOfFortitude = true
-      end
+      hasPrayerOfFortitude = hasRequiredDuration(buffName, expirationTime, 3000, false)
     elseif buffName == "Greater Blessing of Kings" then
-      if expirationTime ~= nil and expirationTime > 3000 then
-        hasGreaterBlessingOfKings = true
-      end
+     hasGreaterBlessingOfKings = hasRequiredDuration(buffName, expirationTime, 3000, false)
     elseif buffName == "Gift of the Wild" then
-      if expirationTime ~= nil and expirationTime > 3000 then
-        hasGiftOfTheWild = true
-      end
+     hasGiftOfTheWild = hasRequiredDuration(buffName, expirationTime, 3000, false)
     end
     i = i + 1
   end
@@ -591,9 +631,7 @@ local function hasShoutBuff()
     local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
     if buffName == shoutBuffName then
       -- Shout buff: valid if more than 9 minutes remaining
-      if expirationTime ~= nil and expirationTime > 540 then
-        return true
-      end
+      return hasRequiredDuration(buffName, expirationTime, 540, false)
     end
     i = i + 1
   end
@@ -946,6 +984,37 @@ local function OnGossipShowEnhanced(self, event, ...)
 
 end
 
+local function OnAuraUpdate(self, event, ...)
+  if not AA_BUFF_TRACKER then AA_BUFF_TRACKER = {} end
+  local activeBuffs = {}  -- Track buffs seen in this update
+
+  local i = 1
+  while UnitBuff("player", i) do
+    local name, _, _, _, _, expirationTime = UnitBuff("player", i)
+
+    if relevantBuffs[name] then
+      print ("AutoAdal: Buff updated: " .. name)
+      activeBuffs[name] = true
+
+      if expirationTime then
+        local absExpire = time() + expirationTime
+        AA_BUFF_TRACKER[name] = {
+          expiresAt = absExpire
+        }
+      end
+    end
+    i = i + 1
+  end
+
+  -- Remove any stored buffs that are no longer active
+  for storedName in pairs(AA_BUFF_TRACKER) do
+    if not activeBuffs[storedName] then
+      print("AutoAdal: Removing buff: " .. storedName)
+      AA_BUFF_TRACKER[storedName] = nil
+    end
+  end
+end
+
 local function OnEvent(self, event, ...)
   if (event == "GOSSIP_SHOW") then
     OnGossipShowEnhanced(self, event, ...)
@@ -966,6 +1035,13 @@ local function OnEvent(self, event, ...)
     OnQuestComplete(self, event, ...)
   elseif (event == "QUEST_PROGRESS") then
     OnQuestProgress(self, event, ...)
+  elseif (event == "PLAYER_ENTERING_WORLD") then
+    OnAuraUpdate(self, event, ...)
+  elseif (event == 'UNIT_AURA') then
+    local player = ...
+    if player == "player" then
+        OnAuraUpdate(self, event, ...)
+    end
   end
 end
 
