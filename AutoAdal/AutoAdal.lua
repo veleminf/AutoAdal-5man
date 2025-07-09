@@ -51,7 +51,6 @@ local relevantBuffs = {
   ["Arcane Brilliance"] = true,
 
   -- Druid
-  ["Mark of the Wild"] = true,
   ["Gift of the Wild"] = true,
 
   -- Paladin
@@ -1008,7 +1007,7 @@ local function OnGossipShowEnhanced(self, event, ...)
 end
 
 local lastAuraUpdate = 0
-local AURA_UPDATE_THROTTLE = 0.1  -- 100ms throttle
+local AURA_UPDATE_THROTTLE = 0.2  -- 200ms throttle
 
 local function OnAuraUpdate(self, event, ...)
   local currentTime = GetTime()
