@@ -76,15 +76,15 @@ local function initBuffTracker()
     return
   end
 
-  local currentTime = time()
   local validData = {}
 
   -- Clean up expired or invalid entries
   for buffName, data in pairs(AA_BUFF_TRACKER) do
     if type(data) == "table" and
-       data.expiresAt and
-       type(data.expiresAt) == "number" and
-       data.expiresAt > currentTime then
+       data.durationLeft  and
+       type(data.durationLeft ) == "number" and
+       data.durationLeft  > 0 then
+      data.capturedAt = GetTime()
       validData[buffName] = data
     end
   end
@@ -544,6 +544,7 @@ aaframe:RegisterEvent("QUEST_COMPLETE")
 aaframe:RegisterEvent("QUEST_PROGRESS")
 aaframe:RegisterEvent("UNIT_AURA")
 aaframe:RegisterEvent("PLAYER_ENTERING_WORLD")
+aaframe:RegisterEvent("PLAYER_LOGOUT")
 
 local buffNPCs = { "A'dal", "Minutulus Naaru Guardian", "Naaru Guardian", "Alera" }
 
@@ -587,12 +588,12 @@ end
 
 local function hasRequiredDuration(buffName, expirationTime, requiredDuration, defaultValue)
   if expirationTime ~= nil and expirationTime ~= 0 then
-    print(("buff: " .. buffName .. " - has expirationTime: " .. tostring(expirationTime) .. "s"))
+    print(("buff: " .. buffName .. " - has expirationTime: " .. SecondsToTime(expirationTime)))
     return expirationTime >= requiredDuration
   else
-    if (AA_BUFF_TRACKER[buffName] and AA_BUFF_TRACKER[buffName].expiresAt) then
-      local storedRemaining = AA_BUFF_TRACKER[buffName].expiresAt - GetTime()
-      print(("buff: " .. buffName .. ", stored expirationTime: " .. tostring(storedRemaining) .. "s"))
+    if (AA_BUFF_TRACKER[buffName] and AA_BUFF_TRACKER[buffName].durationLeft) then
+      local storedRemaining = AA_BUFF_TRACKER[buffName].durationLeft - (GetTime() - AA_BUFF_TRACKER[buffName].capturedAt)
+      print(("buff: " .. buffName .. ", stored expirationTime: " .. SecondsToTime(storedRemaining)))
       if (storedRemaining > 0) then
         return storedRemaining >= requiredDuration
       end
@@ -1029,9 +1030,9 @@ local function OnAuraUpdate(self, event, ...)
       activeBuffs[name] = true
 
       if expirationTime and expirationTime ~= 0 then
-        local absExpire = time() + expirationTime
         AA_BUFF_TRACKER[name] = {
-          expiresAt = absExpire
+          durationLeft  = expirationTime,
+          capturedAt = GetTime()
         }
       end
     end
@@ -1042,6 +1043,20 @@ local function OnAuraUpdate(self, event, ...)
   for storedName in pairs(AA_BUFF_TRACKER) do
     if not activeBuffs[storedName] then
       AA_BUFF_TRACKER[storedName] = nil
+    end
+  end
+end
+
+local function OnPlayerLogout()
+  for name, buff in pairs(AA_BUFF_TRACKER) do
+    if buff.durationLeft and buff.capturedAt then
+      local remaining = buff.durationLeft - (GetTime() - buff.capturedAt)
+      if remaining > 0 then
+        buff.durationLeft = remaining
+        buff.capturedAt = nil
+      else
+        AA_BUFF_TRACKER[name] = nil
+      end
     end
   end
 end
@@ -1073,6 +1088,8 @@ local function OnEvent(self, event, ...)
     if player == "player" then
         OnAuraUpdate(self, event, ...)
     end
+  elseif (event == 'PLAYER_LOGOUT') then
+    OnPlayerLogout(self, event, ...)
   end
 end
 
