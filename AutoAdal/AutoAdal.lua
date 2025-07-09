@@ -71,6 +71,28 @@ local relevantBuffs = {
   ["Slip'kik's Savvy"] = true,
 }
 
+local function initBuffTracker()
+  if not AA_BUFF_TRACKER then
+    AA_BUFF_TRACKER = {}
+    return
+  end
+
+  local currentTime = time()
+  local validData = {}
+
+  -- Clean up expired or invalid entries
+  for buffName, data in pairs(AA_BUFF_TRACKER) do
+    if type(data) == "table" and
+       data.expiresAt and
+       type(data.expiresAt) == "number" and
+       data.expiresAt > currentTime then
+      validData[buffName] = data
+    end
+  end
+
+  AA_BUFF_TRACKER = validData
+end
+
 local function InitConfig()
   for key, value in pairs (AA_DefaultConfig) do
     if (AA_CONFIG[key] == nil) then
@@ -84,7 +106,7 @@ local function InitConfig()
       end
     end
   end
-  AA_BUFF_TRACKER = AA_BUFF_TRACKER or {}
+  initBuffTracker()
 end
 
 -- Print args with color
@@ -565,12 +587,12 @@ local function getBuffNameForQuest(questName)
 end
 
 local function hasRequiredDuration(buffName, expirationTime, requiredDuration, defaultValue)
-  if expirationTime ~= nil then
+  if expirationTime ~= nil and expirationTime ~= 0 then
     print(("buff: " .. buffName .. " - has expirationTime: " .. tostring(expirationTime) .. "s"))
     return expirationTime >= requiredDuration
   else
     if (AA_BUFF_TRACKER[buffName] and AA_BUFF_TRACKER[buffName].expiresAt) then
-      local storedRemaining = AA_BUFF_TRACKER[buffName].expiresAt - time()
+      local storedRemaining = AA_BUFF_TRACKER[buffName].expiresAt - GetTime()
       print(("buff: " .. buffName .. ", stored expirationTime: " .. tostring(storedRemaining) .. "s"))
       if (storedRemaining > 0) then
         return storedRemaining >= requiredDuration
@@ -985,7 +1007,18 @@ local function OnGossipShowEnhanced(self, event, ...)
 
 end
 
+local lastAuraUpdate = 0
+local AURA_UPDATE_THROTTLE = 0.1  -- 100ms throttle
+
 local function OnAuraUpdate(self, event, ...)
+  local currentTime = GetTime()
+  
+  -- Throttle aura updates to prevent spam
+  if currentTime - lastAuraUpdate < AURA_UPDATE_THROTTLE then
+    return
+  end
+  lastAuraUpdate = currentTime
+
   if not AA_BUFF_TRACKER then AA_BUFF_TRACKER = {} end
   local activeBuffs = {}  -- Track buffs seen in this update
 
@@ -994,7 +1027,6 @@ local function OnAuraUpdate(self, event, ...)
     local name, _, _, _, _, expirationTime = UnitBuff("player", i)
 
     if relevantBuffs[name] then
-      print ("AutoAdal: Buff updated: " .. name)
       activeBuffs[name] = true
 
       if expirationTime and expirationTime ~= 0 then
@@ -1010,7 +1042,6 @@ local function OnAuraUpdate(self, event, ...)
   -- Remove any stored buffs that are no longer active
   for storedName in pairs(AA_BUFF_TRACKER) do
     if not activeBuffs[storedName] then
-      print("AutoAdal: Removing buff: " .. storedName)
       AA_BUFF_TRACKER[storedName] = nil
     end
   end
