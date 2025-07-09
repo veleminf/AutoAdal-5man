@@ -572,11 +572,12 @@ local function hasRequiredDuration(buffName, expirationTime, requiredDuration, d
     if (AA_BUFF_TRACKER[buffName] and AA_BUFF_TRACKER[buffName].expiresAt) then
       local storedRemaining = AA_BUFF_TRACKER[buffName].expiresAt - time()
       print(("buff: " .. buffName .. ", stored expirationTime: " .. tostring(storedRemaining) .. "s"))
-      return storedRemaining >= requiredDuration
-    else
-      return defaultValue
+      if (storedRemaining > 0) then
+        return storedRemaining >= requiredDuration
+      end
     end
   end
+  return defaultValue
 end
 
 -- Check if player has the buff corresponding to a quest with sufficient duration
@@ -996,7 +997,7 @@ local function OnAuraUpdate(self, event, ...)
       print ("AutoAdal: Buff updated: " .. name)
       activeBuffs[name] = true
 
-      if expirationTime then
+      if expirationTime and expirationTime ~= 0 then
         local absExpire = time() + expirationTime
         AA_BUFF_TRACKER[name] = {
           expiresAt = absExpire
