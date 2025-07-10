@@ -586,14 +586,13 @@ local function getBuffNameForQuest(questName)
   end
 end
 
+-- The UnitBuff API is unreliable when you do eg logout. It returns durationLeft = nil or 0. Thats why the addon also stores duration to the file and uses it as a fallback.
 local function hasRequiredDuration(buffName, expirationTime, requiredDuration, defaultValue)
   if expirationTime ~= nil and expirationTime ~= 0 then
-    print(("buff: " .. buffName .. " - has expirationTime: " .. SecondsToTime(expirationTime)))
     return expirationTime >= requiredDuration
   else
-    if (AA_BUFF_TRACKER[buffName] and AA_BUFF_TRACKER[buffName].durationLeft) then
+    if (AA_BUFF_TRACKER[buffName] and AA_BUFF_TRACKER[buffName].durationLeft and AA_BUFF_TRACKER[buffName].capturedAt) then
       local storedRemaining = AA_BUFF_TRACKER[buffName].durationLeft - (GetTime() - AA_BUFF_TRACKER[buffName].capturedAt)
-      print(("buff: " .. buffName .. ", stored expirationTime: " .. SecondsToTime(storedRemaining)))
       if (storedRemaining > 0) then
         return storedRemaining >= requiredDuration
       end
