@@ -5,6 +5,7 @@ local ADDON_VERSION = "@VERSION@"
 AA_CONFIG = {
   enabled = true,
   shoutType = "commanding",
+  bloodPact = true,
   autoQuests = {
     ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
     ["Slip'kik's Savvy"] = false,
@@ -16,6 +17,7 @@ AA_CONFIG = {
 local AA_DefaultConfig = {
   enabled = true,
   shoutType = "commanding",
+  bloodPact = true,
   autoQuests = {
     ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
     ["Slip'kik's Savvy"] = false,
@@ -163,7 +165,7 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     if configFrame then return configFrame end
 
     frame = CreateFrame("Frame", "AutoAdalConfigFrame", UIParent)
-    frame:SetSize(400, 320)
+    frame:SetSize(400, 380)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -308,9 +310,34 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     end)
   end
 
+  -- Create Blood Pact checkbox
+  local bloodPactBox = CreateFrame("CheckButton", nil, frame, checkboxTemplate)
+  bloodPactBox:SetPoint("TOPLEFT", frame.shoutDropdown, "BOTTOMLEFT", 15, -15)
+
+  -- Create or set text
+  if not bloodPactBox[textProperty] then
+    bloodPactBox[textProperty] = bloodPactBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    bloodPactBox[textProperty]:SetPoint("LEFT", bloodPactBox, "RIGHT", 5, 0)
+  end
+  bloodPactBox[textProperty]:SetText("Blood Pact")
+
+  -- Set state and behavior
+  if isInterfaceOptions then
+    bloodPactBox:SetScript("OnShow", function(self) self:SetChecked(AA_CONFIG["bloodPact"]) end)
+  else
+    bloodPactBox:SetChecked(AA_CONFIG["bloodPact"])
+  end
+
+  bloodPactBox:SetScript("OnClick", function(self)
+    AA_CONFIG["bloodPact"] = self:GetChecked()
+    print("AutoAdal: Blood Pact " .. (AA_CONFIG["bloodPact"] and "enabled" or "disabled"))
+  end)
+
+  frame.bloodPactCheckbox = bloodPactBox
+
   -- Create quest checkboxes
   local questLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  questLabel:SetPoint("TOPLEFT", frame.shoutDropdown, "BOTTOMLEFT", 15, -15)
+  questLabel:SetPoint("TOPLEFT", frame.bloodPactCheckbox, "BOTTOMLEFT", 0, -15)
   questLabel:SetText("Auto Quest Buffs:")
   frame.questLabel = questLabel
 
@@ -394,6 +421,7 @@ local function SlashCmdHandler(msg)
     local addonStatus = AA_CONFIG["enabled"] and "ENABLED" or "DISABLED"
     print("  Addon: " .. addonStatus)
     print("  Shout Type: " .. AA_CONFIG["shoutType"])
+    print("  Blood Pact: " .. (AA_CONFIG["bloodPact"] and "enabled" or "disabled"))
 
     local enabledQuests = {}
     for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
@@ -426,6 +454,8 @@ local function SlashCmdHandler(msg)
     print("Configuration:")
     print("  /aa shout <type>        - Set shout type (commanding, battle)")
     print("  /aa shout               - Show current shout type")
+    print("  /aa bloodpact <on/off>  - Enable/disable Blood Pact")
+    print("  /aa bloodpact           - Show current Blood Pact setting")
     print("  /aa quest <names>       - Enable quest buffs (wb, savvy, moxie, ferocity)")
     print("  /aa quest               - Show enabled quest buffs")
     print("  /aa quest none          - Disable all quest buffs")
@@ -446,6 +476,21 @@ local function SlashCmdHandler(msg)
         print("AutoAdal: Shout Type = " .. AA_CONFIG["shoutType"]);
       else
         print("AutoAdal: Invalid shout type. Available: commanding, battle");
+      end
+    end
+  elseif (arguments[1] == "bloodpact") then
+    if (arguments[2] == nil) then
+      print("AutoAdal: Blood Pact = " .. (AA_CONFIG["bloodPact"] and "enabled" or "disabled"));
+    else
+      local bloodPactSetting = arguments[2]:lower();
+      if (bloodPactSetting == "on" or bloodPactSetting == "enable" or bloodPactSetting == "enabled") then
+        AA_CONFIG["bloodPact"] = true;
+        print("AutoAdal: Blood Pact enabled");
+      elseif (bloodPactSetting == "off" or bloodPactSetting == "disable" or bloodPactSetting == "disabled") then
+        AA_CONFIG["bloodPact"] = false;
+        print("AutoAdal: Blood Pact disabled");
+      else
+        print("AutoAdal: Invalid Blood Pact setting. Use: on, off, enable, disable");
       end
     end
   elseif (arguments[1] == "quest") then
@@ -699,7 +744,7 @@ local function countRemainingBuffs(npcName)
       buffCount = buffCount + 1
     end
 
-    if not hasBloodPactBuff() then
+    if AA_CONFIG["bloodPact"] and not hasBloodPactBuff() then
       buffCount = buffCount + 1
     end
   end
@@ -836,7 +881,7 @@ local function handleBuffs(self, event, ...)
           autoAcceptingBuffs = false
           return true -- Buff was applied
         end
-      elseif not hasBloodPactBuff() then
+      elseif AA_CONFIG["bloodPact"] and not hasBloodPactBuff() then
         if (FindAndSelectGossipOption("Empower me with Blood Pact")) then
           print("AutoAdal: Applied Blood Pact.")
           autoAcceptingBuffs = false
