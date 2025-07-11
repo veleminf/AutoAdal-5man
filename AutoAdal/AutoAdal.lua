@@ -340,7 +340,7 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
 
   -- Create Thorns checkbox
   local thornsBox = CreateFrame("CheckButton", nil, frame, checkboxTemplate)
-  thornsBox:SetPoint("TOPLEFT", frame.bloodPactCheckbox, "BOTTOMLEFT", 0, 0)
+  thornsBox:SetPoint("TOPLEFT", frame.bloodPactCheckbox, "BOTTOMLEFT", 0, 5)
 
   -- Create or set text
   if not thornsBox[textProperty] then
