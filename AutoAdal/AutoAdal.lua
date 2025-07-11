@@ -6,6 +6,7 @@ AA_CONFIG = {
   enabled = true,
   shoutType = "commanding",
   bloodPact = true,
+  thorns = false,
   autoQuests = {
     ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
     ["Slip'kik's Savvy"] = false,
@@ -18,6 +19,7 @@ local AA_DefaultConfig = {
   enabled = true,
   shoutType = "commanding",
   bloodPact = true,
+  thorns = false,
   autoQuests = {
     ["World Buff Blessing - 10 Token of Achievement Donation"] = false,
     ["Slip'kik's Savvy"] = false,
@@ -54,6 +56,7 @@ local relevantBuffs = {
 
   -- Druid
   ["Gift of the Wild"] = true,
+  ["Thorns"] = true,
 
   -- Paladin
   ["Greater Blessing of Kings"] = true,
@@ -165,7 +168,7 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
     if configFrame then return configFrame end
 
     frame = CreateFrame("Frame", "AutoAdalConfigFrame", UIParent)
-    frame:SetSize(400, 380)
+    frame:SetSize(400, 400)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -312,7 +315,7 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
 
   -- Create Blood Pact checkbox
   local bloodPactBox = CreateFrame("CheckButton", nil, frame, checkboxTemplate)
-  bloodPactBox:SetPoint("TOPLEFT", frame.shoutDropdown, "BOTTOMLEFT", 15, -15)
+  bloodPactBox:SetPoint("TOPLEFT", frame.shoutDropdown, "BOTTOMLEFT", 15, 0)
 
   -- Create or set text
   if not bloodPactBox[textProperty] then
@@ -335,9 +338,34 @@ local function CreateUnifiedConfigUI(isInterfaceOptions)
 
   frame.bloodPactCheckbox = bloodPactBox
 
+  -- Create Thorns checkbox
+  local thornsBox = CreateFrame("CheckButton", nil, frame, checkboxTemplate)
+  thornsBox:SetPoint("TOPLEFT", frame.bloodPactCheckbox, "BOTTOMLEFT", 0, 0)
+
+  -- Create or set text
+  if not thornsBox[textProperty] then
+    thornsBox[textProperty] = thornsBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    thornsBox[textProperty]:SetPoint("LEFT", thornsBox, "RIGHT", 5, 0)
+  end
+  thornsBox[textProperty]:SetText("Thorns")
+
+  -- Set state and behavior
+  if isInterfaceOptions then
+    thornsBox:SetScript("OnShow", function(self) self:SetChecked(AA_CONFIG["thorns"]) end)
+  else
+    thornsBox:SetChecked(AA_CONFIG["thorns"])
+  end
+
+  thornsBox:SetScript("OnClick", function(self)
+    AA_CONFIG["thorns"] = self:GetChecked()
+    print("AutoAdal: Thorns " .. (AA_CONFIG["thorns"] and "enabled" or "disabled"))
+  end)
+
+  frame.thornsCheckbox = thornsBox
+
   -- Create quest checkboxes
   local questLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  questLabel:SetPoint("TOPLEFT", frame.bloodPactCheckbox, "BOTTOMLEFT", 0, -15)
+  questLabel:SetPoint("TOPLEFT", frame.thornsCheckbox, "BOTTOMLEFT", 0, -15)
   questLabel:SetText("Auto Quest Buffs:")
   frame.questLabel = questLabel
 
@@ -422,6 +450,7 @@ local function SlashCmdHandler(msg)
     print("  Addon: " .. addonStatus)
     print("  Shout Type: " .. AA_CONFIG["shoutType"])
     print("  Blood Pact: " .. (AA_CONFIG["bloodPact"] and "enabled" or "disabled"))
+    print("  Thorns: " .. (AA_CONFIG["thorns"] and "enabled" or "disabled"))
 
     local enabledQuests = {}
     for questName, enabled in pairs(AA_CONFIG["autoQuests"]) do
@@ -456,6 +485,8 @@ local function SlashCmdHandler(msg)
     print("  /aa shout               - Show current shout type")
     print("  /aa bloodpact <on/off>  - Enable/disable Blood Pact")
     print("  /aa bloodpact           - Show current Blood Pact setting")
+    print("  /aa thorns <on/off>     - Enable/disable Thorns")
+    print("  /aa thorns              - Show current Thorns setting")
     print("  /aa quest <names>       - Enable quest buffs (wb, savvy, moxie, ferocity)")
     print("  /aa quest               - Show enabled quest buffs")
     print("  /aa quest none          - Disable all quest buffs")
@@ -491,6 +522,21 @@ local function SlashCmdHandler(msg)
         print("AutoAdal: Blood Pact disabled");
       else
         print("AutoAdal: Invalid Blood Pact setting. Use: on, off, enable, disable");
+      end
+    end
+  elseif (arguments[1] == "thorns") then
+    if (arguments[2] == nil) then
+      print("AutoAdal: Thorns = " .. (AA_CONFIG["thorns"] and "enabled" or "disabled"));
+    else
+      local thornsSetting = arguments[2]:lower();
+      if (thornsSetting == "on" or thornsSetting == "enable" or thornsSetting == "enabled") then
+        AA_CONFIG["thorns"] = true;
+        print("AutoAdal: Thorns enabled");
+      elseif (thornsSetting == "off" or thornsSetting == "disable" or thornsSetting == "disabled") then
+        AA_CONFIG["thorns"] = false;
+        print("AutoAdal: Thorns disabled");
+      else
+        print("AutoAdal: Invalid Thorns setting. Use: on, off, enable, disable");
       end
     end
   elseif (arguments[1] == "quest") then
@@ -718,6 +764,20 @@ local function hasBloodPactBuff()
   return false
 end
 
+-- Check if player has Thorns with sufficient duration
+local function hasThornsBuff()
+  local i = 1
+  while UnitBuff("player", i) do
+    local buffName, _, _, _, _, expirationTime = UnitBuff("player", i)
+    if buffName == "Thorns" then
+      -- Thorns buff: valid if more than 9 minutes remaining (same as shout)
+      return hasRequiredDuration(buffName, expirationTime, 540, false)
+    end
+    i = i + 1
+  end
+  return false
+end
+
 -- Count remaining buffs that need to be applied based on specific NPC capabilities
 local function countRemainingBuffs(npcName)
   local buffCount = 0
@@ -738,13 +798,17 @@ local function countRemainingBuffs(npcName)
     end
   end
 
-  -- Only Minutulus Naaru Guardian provides shout and blood pact buffs
+  -- Only Minutulus Naaru Guardian provides shout, blood pact, and thorns buffs
   if npcName == "Minutulus Naaru Guardian" then
     if not hasShoutBuff() then
       buffCount = buffCount + 1
     end
 
     if AA_CONFIG["bloodPact"] and not hasBloodPactBuff() then
+      buffCount = buffCount + 1
+    end
+
+    if AA_CONFIG["thorns"] and not hasThornsBuff() then
       buffCount = buffCount + 1
     end
   end
@@ -884,6 +948,12 @@ local function handleBuffs(self, event, ...)
       elseif AA_CONFIG["bloodPact"] and not hasBloodPactBuff() then
         if (FindAndSelectGossipOption("Empower me with Blood Pact")) then
           print("AutoAdal: Applied Blood Pact.")
+          autoAcceptingBuffs = false
+          return true -- Buff was applied
+        end
+      elseif AA_CONFIG["thorns"] and not hasThornsBuff() then
+        if (FindAndSelectGossipOption("Empower me with Thorns")) then
+          print("AutoAdal: Applied Thorns.")
           autoAcceptingBuffs = false
           return true -- Buff was applied
         end
